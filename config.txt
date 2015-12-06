@@ -1,0 +1,2 @@
+MAPDATA=../../shanghai_map.xml
+
