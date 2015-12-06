@@ -1,5 +1,6 @@
 #ifndef ZBY_CONFIG_H
 #define ZBY_CONFIG_H
+#include "common.h"
 
 #include <map>
 #include <string>

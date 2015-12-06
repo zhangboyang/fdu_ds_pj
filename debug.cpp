@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
-#include "debug.h"
+#include "common.h"
 
 void fail(const char *fmt, ...)
 {

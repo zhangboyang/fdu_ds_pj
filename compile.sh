@@ -2,6 +2,7 @@
 SRCLIST=`ls | grep '\.cp*$'`
 TARGETLIST=""
 CXXFLAGS="-Wall -Werror"
+LDFLAGS="-ltinyxml"
 EXECNAME="pj"
 
 function call_compiler()
@@ -18,6 +19,6 @@ for i in `echo "$SRCLIST"`; do
     call_compiler -c $CXXFLAGS -o "$TARGET" "$SRC"
 done
 
-call_compiler $CXXFLAGS -o "$EXECNAME" $TARGETLIST
+call_compiler -o "$EXECNAME" $TARGETLIST $LDFLAGS
 
 exit 0

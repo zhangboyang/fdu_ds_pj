@@ -1,2 +1,2 @@
-MAPDATA=../../shanghai_map.xml
+MAPDATA=../data/beigongmen.xml
 

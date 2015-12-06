@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstring>
+#include "common.h"
 #include "config.h"
-#include "debug.h"
 
 #include <map>
 #include <string>
@@ -11,6 +11,7 @@ using namespace std;
 
 void ConfigFilePraser::load(const char *fn)
 {
+    /* c-style reading and prasing */
     FILE *f = fopen(fn, "r");
     if (!f) fail("can't open config file %s", fn);
     
@@ -29,6 +30,7 @@ void ConfigFilePraser::load(const char *fn)
 
 const string &ConfigFilePraser::query(const string &key)
 {
+    assert(!data.empty());
     map<string, string>::iterator it;
     it = data.find(key);
     if (it == data.end()) fail("key %s not found", key.c_str());
