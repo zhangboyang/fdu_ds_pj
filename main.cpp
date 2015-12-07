@@ -1,15 +1,20 @@
 #include <iostream>
 #include "common.h"
 #include "config.h"
-#include "readxml.h"
+#include "xmlloader.h"
 
 using namespace std;
 
 ConfigFilePraser cfgp;
+MapData md;
+MapXMLLoader xmlldr;
+
 
 int main()
 {
     cfgp.load("config.txt");
-    load_xml(cfgp.query("MAPDATA"));
+    xmlldr.target(&md);
+    xmlldr.load(cfgp.query("MAPDATA"));
+    
     return 0;
 }

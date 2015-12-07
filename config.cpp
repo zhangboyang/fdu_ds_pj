@@ -23,7 +23,7 @@ void ConfigFilePraser::load(const char *fn)
         char *ptr = strchr(buf, '=');
         if (!ptr) fail("can't parse config file %s", fn);
         *ptr++ = '\0';
-        printd("key='%s' val='%s'\n", buf, ptr);
+        //printd("key='%s' val='%s'\n", buf, ptr);
         data.insert(make_pair(string(buf), string(ptr)));
     }
 }

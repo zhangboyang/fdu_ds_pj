@@ -1,2 +1,2 @@
-MAPDATA=../data/beigongmen.xml
+MAPDATA=../data/anheqiao.xml
 

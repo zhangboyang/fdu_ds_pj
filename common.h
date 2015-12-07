@@ -8,6 +8,9 @@
 #define NDEBUG
 #endif
 
+typedef long long LL;
+typedef unsigned long long ULL;
+
 /* assert() */
 #include <cassert>
 

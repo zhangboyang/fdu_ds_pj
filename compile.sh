@@ -1,7 +1,7 @@
 #!/bin/bash
 SRCLIST=`ls | grep '\.cp*$'`
 TARGETLIST=""
-CXXFLAGS="-Wall -Werror"
+CXXFLAGS="-Wall"
 LDFLAGS="-ltinyxml"
 EXECNAME="pj"
 
