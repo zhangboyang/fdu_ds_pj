@@ -1,8 +1,10 @@
 #include <cstdio>
+#include <cmath>
 #include "common.h"
 #include "MapData.h"
 
 #include <utility>
+#include <algorithm>
 using namespace std;
 
 /* MapData */
@@ -28,6 +30,11 @@ void MapData::set_coord_limit(double minlat, double maxlat, double minlon, doubl
     MapData::maxlon = maxlon;
     MapNode::trans_coord(minlat, minlon, &minx, &miny);
     MapNode::trans_coord(maxlat, maxlon, &maxx, &maxy);
+    assert(maxx > minx); //if (minx > maxx) swap(minx, maxx);
+    assert(maxy > miny); //if (miny > maxy) swap(miny, maxy);
+    mratio = (maxy - miny) / (maxx - minx);
+    gratio = 1 / cos(fabs(maxlat + minlat) / 360 * M_PI);
+    assert(gratio >= 1);
 }
 
 MapNode *MapData::get_node_by_id(LL id)
@@ -42,6 +49,7 @@ void MapData::print_stat()
     printf("map data statistics:\n");
     printf(" minlat: %f(%f)  maxlat: %f(%f)\n", minlat, minx, maxlat, maxx);
     printf(" minlon: %f(%f)  maxlon: %f(%f)\n", minlon, miny, maxlon, maxy);
+    printf(" mratio: %f  gratio: %f\n", mratio, gratio);
     printf(" node count: %d\n", (int) nl.size());
     printf(" way count: %d\n", (int) wl.size());
     printf(" relation count: %d\n", (int) rl.size());

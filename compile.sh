@@ -1,8 +1,8 @@
 #!/bin/bash
 SRCLIST=`ls | grep '\.cp*$'`
 TARGETLIST=""
-CXXFLAGS="-Wall"
-LDFLAGS="-ltinyxml"
+CXXFLAGS="-Wall -g"
+LDFLAGS="$CXXFLAGS -ltinyxml -lGL -lGLU -lglut"
 EXECNAME="pj"
 
 function call_compiler()

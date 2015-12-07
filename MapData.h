@@ -17,6 +17,7 @@ class MapData {
     double maxlat, maxlon;
     double minx, miny;
     double maxx, maxy;
+    double mratio, gratio;
     
     ~MapData();
     void insert(MapNode *node);

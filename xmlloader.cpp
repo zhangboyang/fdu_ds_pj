@@ -115,7 +115,4 @@ void MapXMLLoader::load(const char *xmlfile)
     assert(md->rl.size() == md->rm.size());
 }
 
-void MapXMLLoader::target(MapData *md)
-{
-    MapXMLLoader::md = md;
-}
+void MapXMLLoader::target(MapData *md) { MapXMLLoader::md = md; }
