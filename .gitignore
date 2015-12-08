@@ -22,6 +22,9 @@
 *.a
 *.lib
 
+# gprof
+gmon.out
+
 # Executables
 *.exe
 *.out
