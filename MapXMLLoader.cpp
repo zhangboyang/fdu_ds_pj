@@ -61,11 +61,10 @@ void MapXMLLoader::process_xmlchild(XMLNode *node)
                             str2double(query_attr(node, "maxlon")));
     } else if (strcmp(tstr, "node") == 0) {
         LL id = str2LL(query_attr(node, "id"));
-        double lat = str2double(query_attr(node, "lat"));
-        double lon = str2double(query_attr(node, "lon"));
         MapNode *mnode = new MapNode;
         mnode->set_id(id);
-        mnode->set_coord(lat, lon);
+        md->set_node_coord_by_geo(mnode, str2double(query_attr(node, "lat")),
+                                         str2double(query_attr(node, "lon")));
         md->insert(mnode);
     } else if (strcmp(tstr, "way") == 0) { //print_xml(node);
         LL id = str2LL(query_attr(node, "id"));
@@ -103,11 +102,13 @@ void MapXMLLoader::load(const char *xmlfile)
 {
     assert(md);
     XMLDocument doc;
+    
     TIMING ("load xml file", {
         if (doc.LoadFile(xmlfile) != XML_NO_ERROR) { // load data from file
             fail("doc.LoadFile() failed");
         }
     })
+    
     TIMING ("process xml", {
         process_xmldoc(&doc); // process xml document
     })

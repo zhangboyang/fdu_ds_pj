@@ -15,7 +15,7 @@ class MapGraphics {
         ZOOMOUT, ZOOMIN,
     };
     static const int WINDOWHEIGHT = 500;
-    static const double MOVESTEP = 0.2;
+    static const double MOVESTEP = 0.1;
     static const double ZOOMSTEP = 0.8;
     
     double gminx, gmaxx, gminy, gmaxy;

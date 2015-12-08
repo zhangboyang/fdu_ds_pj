@@ -3,6 +3,9 @@
 #include "common.h"
 #include "MapObject.h"
 
+#include <vector>
+#include <map>
+
 class MapData {
     public:
     std::vector<MapNode *> nl; // l: object list
@@ -17,13 +20,15 @@ class MapData {
     double maxlat, maxlon;
     double minx, miny;
     double maxx, maxy;
-    double mratio, gratio;
+    double map_ratio, geo_ratio;
     
     ~MapData();
     void insert(MapNode *node);
     void insert(MapWay *way);
     void insert(MapRelation *rela);
     void set_coord_limit(double minlat, double maxlat, double minlon, double maxlon);
+    void set_node_coord_by_geo(MapNode *node, double lat, double lon);
+    void trans_coord(double lat, double lon, double *x, double *y);
     MapNode *get_node_by_id(LL id);
     void print_stat();
 };

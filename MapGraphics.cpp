@@ -43,13 +43,12 @@ void MapGraphics::zoom_glimit(int f)
 void MapGraphics::get_gcoord_by_node(MapNode *node, double *gx, double *gy) // transform for MapGraphics
 {
     assert(gmaxx - gminx > 0); assert(gmaxy - gminy > 0);
-    *gx = (node->y - gminy) * md->gratio / (gmaxy - gminy);
+    *gx = (node->y - gminy) / (gmaxy - gminy);
     *gy = (node->x - gminx) / (gmaxx - gminx);
 }
 
 void MapGraphics::map_operation(MapGraphicsOperation op)
 {
-    printf("op=%d\n", op);
     if (op == UP) move_glimit(1, 0);
     else if (op == DOWN) move_glimit(-1, 0);
     else if (op == LEFT) move_glimit(0, -1);
@@ -117,26 +116,25 @@ void MapGraphics::init_glut()
 {
     glClearColor(0.0, 0.0, 0.0, 0.0);
     glMatrixMode(GL_PROJECTION);
-    gluOrtho2D(0.0, md->gratio, 0.0, 1.0);
+    gluOrtho2D(0.0, 1.0, 0.0, 1.0);
 }
 
 void MapGraphics::show(const char *title, int argc, char *argv[])
 {
     assert(md);
     set_glimit(md->minx, md->maxx, md->miny, md->maxy); // FIXME: full map
-    assert(mgptr == NULL);
+    assert(mgptr == NULL); // can't create MapGraphics twice
     mgptr = this;
     
     /* glut things */
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
-    glutInitWindowSize(md->mratio / md->gratio * WINDOWHEIGHT, WINDOWHEIGHT);
+    glutInitWindowSize(md->map_ratio * WINDOWHEIGHT, WINDOWHEIGHT);
     glutCreateWindow(title);
     init_glut();
     glutSpecialFunc(special_keyevent_wrapper);
     glutDisplayFunc(redraw_wrapper);
     glutMainLoop();
-    
-    mgptr = NULL;
+    assert(0);
 }
 
