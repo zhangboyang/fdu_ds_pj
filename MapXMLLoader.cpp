@@ -1,116 +1,127 @@
-#include <tinyxml2.h>
+#include <cstring>
+#include <libxml/xmlreader.h>
 #include "common.h"
 #include "MapXMLLoader.h"
 #include "str2type.h"
 
-using namespace tinyxml2;
-/* use tinyxml2 to read data */
+/* use libxml2 to read data */
 
-void MapXMLLoader::print_xml(XMLNode *node, int tab)
+void MapXMLLoader::print_current_node()
 {
-    printf("%*s", tab + 1, "+");
-    XMLElement *ele;
-    if ((ele = node->ToElement())) {
-        printf("element=%s\n", node->Value());
-        const XMLAttribute *attr = ele->FirstAttribute();
-        while (attr) {
-	        int ival; double dval;
-	        printf("%*s", tab + 2, "$");
-		    printf("%s: value=[%s]", attr->Name(), attr->Value());
-		    if (attr->QueryIntValue(&ival) == XML_NO_ERROR) printf(" int=%d", ival);
-		    if (attr->QueryDoubleValue(&dval) == XML_NO_ERROR) printf(" d=%1.1f", dval);
-		    printf("\n");
-		    attr = attr->Next();
-	    }
-    } else if (node->ToText()) {
-        printf("txt=%s\n", node->Value());
-    } else {
-        printf("unknown\n");
+    int deepth = xmlTextReaderDepth(rdr);
+    int tab = deepth + 1;
+    int ntype = xmlTextReaderNodeType(rdr);
+    const char *name = (const char *) xmlTextReaderConstName(rdr);
+    const char *value = (const char *) xmlTextReaderConstValue(rdr);
+    
+    if (ntype != 1) {
+        printf("%*stype=%d\n", tab, "+", ntype);
+        return;
     }
     
-    XMLNode *ch;
-    for (ch = node->FirstChild(); ch; ch = ch->NextSibling()) {
-        print_xml(ch, tab + 1);
+    printf("%*stype=%d name=%s\n", tab, "+", ntype, name);
+    
+    int ret;
+    ret = xmlTextReaderMoveToFirstAttribute(rdr);
+    while (ret == 1) {
+        name = (const char *) xmlTextReaderConstName(rdr);
+        value = (const char *) xmlTextReaderConstValue(rdr);
+        printf("%*skey=%s val=%s\n", tab + 1, "$", name, value);
+        ret = xmlTextReaderMoveToNextAttribute(rdr);
     }
 }
 
-const char *MapXMLLoader::query_attr(XMLNode *node, const char *name, bool safe)
+LL MapXMLLoader::get_LL_attr(const char *aname)
 {
-    XMLElement *ele = node->ToElement();
-    assert(ele);
-    const XMLAttribute *attr;
-    for (attr = ele->FirstAttribute(); attr; attr = attr->Next())
-        if (strcmp(name, attr->Name()) == 0)
-            return attr->Value();
-    if (!safe) {
-        printd("query_attr(%p, %s)\n", node, name);
-        print_xml(node);
-        fail("attr '%s' not found", name);
+    char *str = (char *) xmlTextReaderGetAttribute(rdr, (xmlChar *) aname);
+    if (!str) {
+        print_current_node();
+        fail("can't find attribute '%s'", aname);
     }
-    return NULL;
+    LL ret = str2LL(str);
+    xmlFree(str);
+    return ret;
 }
 
-void MapXMLLoader::process_xmlchild(XMLNode *node)
+double MapXMLLoader::get_double_attr(const char *aname)
 {
-    const char *tstr = node->Value();    
-    if (strcmp(tstr, "bounds") == 0) {
-        md->set_coord_limit(str2double(query_attr(node, "minlat")),
-                            str2double(query_attr(node, "maxlat")),
-                            str2double(query_attr(node, "minlon")),
-                            str2double(query_attr(node, "maxlon")));
-    } else if (strcmp(tstr, "node") == 0) {
-        LL id = str2LL(query_attr(node, "id"));
+    char *str = (char *) xmlTextReaderGetAttribute(rdr, (xmlChar *) aname);
+    if (!str) {
+        print_current_node();
+        fail("can't find attribute '%s'", aname);
+    }
+    double ret = str2double(str);
+    xmlFree(str);
+    return ret;
+}
+
+void MapXMLLoader::process_node()
+{    
+    int deepth = xmlTextReaderDepth(rdr);
+    int ntype = xmlTextReaderNodeType(rdr);
+    
+    if (ntype != 1) return;
+    
+    const char *name = (const char *) xmlTextReaderConstName(rdr);
+    
+    if (mway_ptr && deepth == 2) {
+        // see processing 'way'
+        if (strcmp(name, "nd") == 0)
+            mway_ptr->add_node(md->get_node_by_id(get_LL_attr("ref")));
+        return;
+    }
+    
+    if (deepth != 1) return;
+    
+    mway_ptr = NULL; // reset temp ptr
+    if (strcmp(name, "node") == 0) {
+        LL id = get_LL_attr("id");
         MapNode *mnode = new MapNode;
         mnode->set_id(id);
-        md->set_node_coord_by_geo(mnode, str2double(query_attr(node, "lat")),
-                                         str2double(query_attr(node, "lon")));
+        md->set_node_coord_by_geo(mnode, get_double_attr("lat"),
+                                         get_double_attr("lon"));
         md->insert(mnode);
-    } else if (strcmp(tstr, "way") == 0) { //print_xml(node);
-        LL id = str2LL(query_attr(node, "id"));
+    } else if (strcmp(name, "way") == 0) {
+        LL id = get_LL_attr("id");
         MapWay *mway = new MapWay;
         mway->set_id(id);
-        XMLNode *ch;
-        for (ch = node->FirstChild(); ch; ch = ch->NextSibling())
-            if (strcmp(ch->Value(), "nd") == 0)
-                mway->add_node(md->get_node_by_id(str2LL(query_attr(ch, "ref"))));
         md->insert(mway);
-    } else if (strcmp(tstr, "relation") == 0) {
+        mway_ptr = mway; // process child later
+    } else if (strcmp(name, "relation") == 0) {
         static int x = 0; // FIXME
         if (!x) { printf("warning: relation ignored.\n"); x = 1; }
+    } else if (strcmp(name, "bounds") == 0) {
+        md->set_coord_limit(get_double_attr("minlat"),
+                            get_double_attr("maxlat"),
+                            get_double_attr("minlon"),
+                            get_double_attr("maxlon"));
     } else {
-        printf("warning: unknown node type %s\n", tstr);
-        print_xml(node);
+        printf("warning: unknown node type %s\n", name);
+        print_current_node();
         return;
     }
 }
 
-void MapXMLLoader::process_xmldoc(XMLNode *doc)
-{
-    assert(doc->FirstChild());
-    doc = doc->FirstChild()->NextSibling();
-    assert(doc);
-    assert(strcmp(doc->Value(), "osm") == 0);
-    
-    XMLNode *ch;
-    for (ch = doc->FirstChild(); ch; ch = ch->NextSibling()) {
-        process_xmlchild(ch);
-    }
-}
-
-void MapXMLLoader::load(const char *xmlfile)
+void MapXMLLoader::load(const char *fn)
 {
     assert(md);
-    XMLDocument doc;
     
-    TIMING ("load xml file", {
-        if (doc.LoadFile(xmlfile) != XML_NO_ERROR) { // load data from file
-            fail("doc.LoadFile() failed");
+    LIBXML_TEST_VERSION
+    
+    TIMING ("load data from xml", {
+        rdr = xmlReaderForFile(fn, NULL, 0);
+        if (!rdr) fail("can't load '%s'", fn);
+        mway_ptr = NULL; // reset temp ptr for process_node()
+        int ret;
+        ret = xmlTextReaderRead(rdr);
+        while (ret == 1) {
+            process_node();
+            ret = xmlTextReaderRead(rdr);
         }
+        xmlFreeTextReader(rdr);
+        if (ret != 0) fail("failed to prase '%s'", fn);
     })
     
-    TIMING ("process xml", {
-        process_xmldoc(&doc); // process xml document
-    })
     md->print_stat();
     assert(md->nl.size() == md->nm.size());
     assert(md->wl.size() == md->wm.size());

@@ -1,7 +1,7 @@
 CPP_FILES := $(wildcard *.cpp)
 OBJ_FILES := $(notdir $(CPP_FILES:.cpp=.o))
-CXXFLAGS := -Wall -g
-LD_FLAGS := $(CXXFLAGS) -ltinyxml2 -lGL -lGLU -lglut
+CXXFLAGS := $(shell xml2-config --cflags) -Wall -g -DDEBUG
+LD_FLAGS := $(CXXFLAGS) -lGL -lGLU -lglut $(shell xml2-config --libs)
 CC_FLAGS := -MMD $(CXXFLAGS)
 EXEC_FILE := pj
 

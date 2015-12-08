@@ -3,15 +3,18 @@
 #include "common.h"
 #include "MapObject.h"
 #include "MapData.h"
-#include <tinyxml2.h>
+#include <libxml/xmlreader.h>
 
 class MapXMLLoader {
     private:
-    void print_xml(tinyxml2::XMLNode *node, int tab = 1);
-    const char *query_attr(tinyxml2::XMLNode *node, const char *name, bool safe = false);
-    void process_xmlchild(tinyxml2::XMLNode *node);
-    void process_xmldoc(tinyxml2::XMLNode *doc);
-
+    xmlTextReaderPtr rdr;
+    MapWay *mway_ptr; // temp pointer used by process_node()
+    
+    void print_current_node();
+    LL get_LL_attr(const char *aname);
+    double get_double_attr(const char *aname);
+    void process_node();
+    
     public:
     MapData *md;
     
