@@ -9,7 +9,6 @@ using namespace tinyxml2;
 void MapXMLLoader::print_xml(XMLNode *node, int tab)
 {
     printf("%*s", tab + 1, "+");
-    //printf("type=%d ", node->Type());
     XMLElement *ele;
     if ((ele = node->ToElement())) {
         printf("element=%s\n", node->Value());

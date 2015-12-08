@@ -29,23 +29,23 @@ void MapData::set_coord_limit(double minlat, double maxlat, double minlon, doubl
     MapData::maxlat = maxlat;
     MapData::minlon = minlon;
     MapData::maxlon = maxlon;
-    geo_ratio = 1 / cos(fabs(maxlat + minlat) / 360 * M_PI);
-    assert(geo_ratio >= 1);
+    geo_factor = cos(fabs(maxlat + minlat) * (M_PI / 360));
+    assert(0 < geo_factor && geo_factor <= 1);
     
     /* since we set maxmin, gratio first, we can call trans_coord() now */
     trans_coord(minlat, minlon, &minx, &miny);
     trans_coord(maxlat, maxlon, &maxx, &maxy);
     assert(maxx > minx); //if (minx > maxx) swap(minx, maxx);
     assert(maxy > miny); //if (miny > maxy) swap(miny, maxy);
-    map_ratio = (maxy - miny) / (maxx - minx);
+    map_ratio = (maxx - minx) / (maxy - miny);
 }
 
 void MapData::trans_coord(double lat, double lon, double *x, double *y)
 {
     /* must call set_coord_limit() first */
     assert(x); assert(y);
-    *x = lat;
-    *y = lon / geo_ratio;
+    *x = lon * geo_factor;
+    *y = lat;
 }
 
 void MapData::set_node_coord_by_geo(MapNode *node, double lat, double lon)
@@ -67,7 +67,7 @@ void MapData::print_stat()
     printf("map data statistics:\n");
     printf(" minlat: %f(%f)  maxlat: %f(%f)\n", minlat, minx, maxlat, maxx);
     printf(" minlon: %f(%f)  maxlon: %f(%f)\n", minlon, miny, maxlon, maxy);
-    printf(" map_ratio: %f  geo_ratio: %f\n", map_ratio, geo_ratio);
+    printf(" map_ratio: %f  geo_factor: %f\n", map_ratio, geo_factor);
     printf(" node count: %d\n", (int) nl.size());
     printf(" way count: %d\n", (int) wl.size());
     printf(" relation count: %d\n", (int) rl.size());

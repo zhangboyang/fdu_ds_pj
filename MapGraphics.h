@@ -6,7 +6,6 @@
 
 class MapGraphics {
     private:
-    void init_glut();
     
     public:
     
@@ -14,21 +13,22 @@ class MapGraphics {
         UP, DOWN, LEFT, RIGHT,
         ZOOMOUT, ZOOMIN,
     };
-    static const int WINDOWHEIGHT = 500;
+    static const int INITIAL_WINDOW_HEIGHT = 500;
     static const double MOVESTEP = 0.1;
     static const double ZOOMSTEP = 0.8;
     
-    double gminx, gmaxx, gminy, gmaxy;
+    double dminx, dmaxx, dminy, dmaxy;
+    int window_width, window_height;
     MapData *md;
     
     void target(MapData *md);
-    void get_gcoord_by_node(MapNode *node, double *gx, double *gy);
-    void set_glimit(double gminx, double gmaxx, double gminy, double gmaxy);
-    void move_glimit(int x, int y);
-    void zoom_glimit(int f);
+    void set_display_range(double dminx, double dmaxx, double dminy, double dmaxy);
+    void move_display_range(int x, int y);
+    void zoom_display_range(int f);
     void map_operation(MapGraphicsOperation op);
     
     void redraw();
+    void reshape(int width, int height);
     void special_keyevent(int key, int x, int y);
     void show(const char *title, int argc, char *argv[]);
 };

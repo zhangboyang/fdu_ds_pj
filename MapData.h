@@ -20,7 +20,8 @@ class MapData {
     double maxlat, maxlon;
     double minx, miny;
     double maxx, maxy;
-    double map_ratio, geo_ratio;
+    double map_ratio; // width / height
+    double geo_factor; // cos(lat)
     
     ~MapData();
     void insert(MapNode *node);
