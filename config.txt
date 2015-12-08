@@ -1,2 +1,2 @@
-MAPDATA=../data/haidian.xml
+MAPDATA=../data/zhongguancun.xml
 TITLE=Zby's Map
