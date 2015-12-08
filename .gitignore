@@ -1,32 +1,12 @@
-# Compiled Object files
-*.slo
-*.lo
+# g++
 *.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-
-# Fortran module files
-*.mod
-
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+*.d
 
 # gprof
 gmon.out
 
-# Executables
-*.exe
-*.out
-*.app
+# google pprof
+*.heap
+
+# exec file
 pj
