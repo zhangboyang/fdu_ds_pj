@@ -2,7 +2,7 @@
 SRCLIST=`ls | grep '\.cp*$'`
 TARGETLIST=""
 CXXFLAGS="-Wall -g"
-LDFLAGS="$CXXFLAGS -ltinyxml -lGL -lGLU -lglut"
+LDFLAGS="$CXXFLAGS -ltinyxml2 -lGL -lGLU -lglut"
 EXECNAME="pj"
 
 function call_compiler()

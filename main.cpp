@@ -1,7 +1,7 @@
 #include <iostream>
 #include "common.h"
 #include "config.h"
-#include "xmlloader.h"
+#include "MapXMLLoader.h"
 #include "MapData.h"
 #include "MapGraphics.h"
 
