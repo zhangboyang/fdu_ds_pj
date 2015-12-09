@@ -9,6 +9,7 @@
 class MapData {
     public:
     std::vector<MapNode *> nl; // l: object list
+    std::vector<MapLine *> ll;
     std::vector<MapWay *> wl;
     std::vector<MapRelation *> rl;
     
@@ -20,17 +21,20 @@ class MapData {
     double maxlat, maxlon;
     double minx, miny;
     double maxx, maxy;
-    double map_ratio; // width / height
+    double map_ratio; // width / height (real)
     double geo_factor; // cos(lat)
+    double max_geo_error;
     
     ~MapData();
     void insert(MapNode *node);
+    void insert(MapLine *line);
     void insert(MapWay *way);
     void insert(MapRelation *rela);
     void set_coord_limit(double minlat, double maxlat, double minlon, double maxlon);
     void set_node_coord_by_geo(MapNode *node, double lat, double lon);
     void trans_coord(double lat, double lon, double *x, double *y);
     MapNode *get_node_by_id(LL id);
+    void construct();
     void print_stat();
 };
 

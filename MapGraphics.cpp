@@ -9,10 +9,17 @@ using namespace std;
 
 void MapGraphics::target(MapData *md) { MapGraphics::md = md; }
 
+void MapGraphics::trans_gcoord(double x, double y, double *gx, double *gy)
+{
+    *gx = x - md->minx;
+    *gy = y - md->miny;
+}
+
 void MapGraphics::set_display_range(double dminx, double dmaxx, double dminy, double dmaxy)
 {
-    MapGraphics::dminx = dminx; MapGraphics::dmaxx = dmaxx; // set limit for MapGraphics
-    MapGraphics::dminy = dminy; MapGraphics::dmaxy = dmaxy;
+    assert(dminx < dmaxx); assert(dminy < dmaxy);
+    trans_gcoord(dminx, dminy, &(MapGraphics::dminx), &(MapGraphics::dminy));  // set limit for MapGraphics
+    trans_gcoord(dmaxx, dmaxy, &(MapGraphics::dmaxx), &(MapGraphics::dmaxy));
 }
 
 void MapGraphics::move_display_range(int x, int y)
@@ -40,6 +47,11 @@ void MapGraphics::zoom_display_range(int f)
     dminy += diffy;
 }
 
+void MapGraphics::reset_display_range()
+{
+    set_display_range(md->minx, md->maxx, md->miny, md->maxy);
+}
+
 void MapGraphics::map_operation(MapGraphicsOperation op)
 {
     if (op == UP) move_display_range(0, 1);
@@ -48,6 +60,7 @@ void MapGraphics::map_operation(MapGraphicsOperation op)
     else if (op == RIGHT) move_display_range(1, 0);
     else if (op == ZOOMOUT) zoom_display_range(-1);
     else if (op == ZOOMIN) zoom_display_range(1);
+    else if (op == RESETVIEW) reset_display_range();
     else assert(0);
 }
 
@@ -61,7 +74,7 @@ void MapGraphics::redraw()
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(dminx, dmaxx, dminy, dmaxy);
-    printf("%f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
+    printd("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
     
     /*for (vector<MapNode *>::iterator it = md->nl.begin(); it != md->nl.end(); it++) {
         double gx, gy;
@@ -79,7 +92,9 @@ void MapGraphics::redraw()
         MapWay *way = *wit;
         for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
             MapNode *node = *nit;
-            glVertex2d(node->x, node->y);
+            double gx, gy;
+            trans_gcoord(node->x, node->y, &gx, &gy);
+            glVertex2d(gx, gy);
         }
         glEnd();
     }
@@ -92,6 +107,7 @@ void MapGraphics::special_keyevent(int key, int x, int y)
 {
     MapGraphicsOperation op;
     switch (key) {
+        case GLUT_KEY_F1: op = RESETVIEW; break;
         case GLUT_KEY_UP: op = UP; break;
         case GLUT_KEY_DOWN: op = DOWN; break;
         case GLUT_KEY_LEFT: op = LEFT; break;
@@ -131,7 +147,7 @@ void special_keyevent_wrapper(int key, int x, int y) { assert(mgptr); mgptr->spe
 void MapGraphics::show(const char *title, int argc, char *argv[])
 {
     assert(md);
-    set_display_range(md->minx, md->maxx, md->miny, md->maxy); // FIXME: full map
+    reset_display_range(); // FIXME: full map
     assert(mgptr == NULL); // can't create MapGraphics twice
     mgptr = this;
     

@@ -22,38 +22,38 @@ class MapObject {
     LL id;
 
     void set_id(LL id);
-    virtual ObjectType type();
-    virtual ~MapObject();
+    //virtual ObjectType type();
+    //virtual ~MapObject();
 };
 
 class MapNode : public MapObject {
     public:
     double x, y;
-    double lat, lon;
+    //double lat, lon;
     
-    virtual ObjectType type();
+    //virtual ObjectType type();
 };
 
 class MapLine : public MapObject {
     public:
-    virtual ObjectType type();
-    double x1, y1;
-    double x2, y2;
+    //virtual ObjectType type();
+    //double x1, y1;
+    //double x2, y2;
     MapNode *p1, *p2;
     void set_line(MapNode *p1, MapNode *p2);
 };
 
 class MapWay : public MapObject {
     public:
-    virtual ObjectType type();
+    //virtual ObjectType type();
     std::vector<MapNode *> nl; // nl: node list
     void add_node(MapNode *node);
 };
 
 class MapRelation : public MapObject {
     public:
-    virtual ObjectType type();
-    // FIXME
+    //virtual ObjectType type();
+    // FIXME: 'relation' not implemented
 };
 
 #endif

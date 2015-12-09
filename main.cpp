@@ -18,7 +18,11 @@ int main(int argc, char *argv[])
     cfgp.load("config.txt");
     xmlldr.target(&md);
     xmlldr.load(cfgp.query("MAPDATA"));
+    
+    md.construct();
+    md.print_stat();
     //HeapProfilerStop();
+    
     mg.target(&md);
     mg.show(cfgp.query("TITLE"), argc, argv); // ui loop, never return
     

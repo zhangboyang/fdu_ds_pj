@@ -65,7 +65,7 @@ void MapXMLLoader::process_node()
     const char *name = (const char *) xmlTextReaderConstName(rdr);
     
     if (mway_ptr && deepth == 2) {
-        // see processing 'way'
+        // process child of 'way', see processing 'way' below
         if (strcmp(name, "nd") == 0)
             mway_ptr->add_node(md->get_node_by_id(get_LL_attr("ref")));
         return;
@@ -88,7 +88,7 @@ void MapXMLLoader::process_node()
         md->insert(mway);
         mway_ptr = mway; // process child later
     } else if (strcmp(name, "relation") == 0) {
-        static int x = 0; // FIXME
+        static int x = 0; // FIXME: 'relation' not implemented
         if (!x) { printf("warning: relation ignored.\n"); x = 1; }
     } else if (strcmp(name, "bounds") == 0) {
         md->set_coord_limit(get_double_attr("minlat"),
@@ -108,6 +108,9 @@ void MapXMLLoader::load(const char *fn)
     
     LIBXML_TEST_VERSION
     
+    // this function will load data to md->[nwr]l and md->[nwr]m
+    // which will be processed lator by MapData::construct()
+    
     TIMING ("load data from xml", {
         rdr = xmlReaderForFile(fn, NULL, 0);
         if (!rdr) fail("can't load '%s'", fn);
@@ -119,13 +122,8 @@ void MapXMLLoader::load(const char *fn)
             ret = xmlTextReaderRead(rdr);
         }
         xmlFreeTextReader(rdr);
-        if (ret != 0) fail("failed to prase '%s'", fn);
+        if (ret != 0) fail("failed to parse '%s'", fn);
     })
-    
-    md->print_stat();
-    assert(md->nl.size() == md->nm.size());
-    assert(md->wl.size() == md->wm.size());
-    assert(md->rl.size() == md->rm.size());
 }
 
 void MapXMLLoader::target(MapData *md) { MapXMLLoader::md = md; }

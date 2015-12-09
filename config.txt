@@ -1,2 +1,2 @@
-MAPDATA=../data/shanghai_map.xml
+MAPDATA=../data/beijing.xml
 TITLE=Zby's Map
