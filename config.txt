@@ -1,8 +1,17 @@
+// map data
 MAPDATA=../data/shanghai_map.xml
+
+// title of main window
 TITLE=Zby's Map
 
+// objects with size >= 1/DISPLAY_FACTOR of current display level will be shown
 DISPLAY_FACTOR=80
+
+
+// total level count
 LEVEL_TOTAL=4
+
+// display resolution of each level
 LEVEL_RES0=0
 LEVEL_RES1=0.02
 LEVEL_RES2=0.08

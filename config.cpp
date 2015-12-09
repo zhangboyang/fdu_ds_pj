@@ -18,6 +18,8 @@ void ConfigFilePraser::load(const char *fn)
         int len = strlen(buf);
         if (buf[len - 1] == '\n') buf[--len] = '\0';
         if (len == 0) continue;
+        if (*buf == ';' || *buf == '#') continue;
+        if (strncmp(buf, "//", 2) == 0) continue;
         char *ptr = strchr(buf, '=');
         if (!ptr) fail("can't parse config file %s", fn);
         *ptr++ = '\0';
