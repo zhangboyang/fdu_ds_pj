@@ -4,6 +4,7 @@
 #include "MapObject.h"
 #include "MapRTree.h"
 #include "MapLevel.h"
+#include "MapWayType.h"
 #include <vector>
 #include <map>
 
@@ -24,6 +25,7 @@ class MapData {
     
     public:
     MapLevel ml;
+    MapWayType wt;
     int dfactor; // display factor
     std::vector<MapRTree<MapLine *> > lrt;
 

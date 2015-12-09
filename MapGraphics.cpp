@@ -109,8 +109,7 @@ void MapGraphics::redraw()
     vector<MapLine *> result;
     result.clear();
     int lvl_low_limit = md->ml.select_level(get_display_resolution());
-    int lvl_high_limit = md->ml.get_level_count();
-    printf("display level: %d of %d\n", lvl_low_limit + 1, lvl_high_limit);
+    printf("display level: %d\n", lvl_low_limit);
     md->lrt[lvl_low_limit].find(result, MapRect(mminx, mmaxx, mminy, mmaxy));
     
     printf("r-tree result count: %lld\n", (LL) result.size());
@@ -122,13 +121,17 @@ void MapGraphics::redraw()
     sort(dwl.begin(), dwl.end());
     dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
     printf("need to draw %lld ways\n", (LL) dwl.size());
-    
+//    sort(dwl.begin(), dwl.end(), MapWay::compare_by_waytype);
     
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
         //if (wit - md->wl.begin() >= x) { x++; break; }
         //printf("drawing %lld\n", (*wit)->id);
         glBegin(GL_LINE_STRIP);
         MapWay *way = *wit;
+        float r, g, b;
+        md->wt.query_rgb(way->waytype, &r, &g, &b);
+        glColor3f(r, g, b);
+        
         for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
             MapNode *node = *nit;
             double gx, gy;

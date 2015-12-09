@@ -22,4 +22,3 @@ int MapLevel::select_level(double res)
     return lvl;
 }
 
-

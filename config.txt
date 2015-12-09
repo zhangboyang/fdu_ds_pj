@@ -1,11 +1,11 @@
 // map data
-MAPDATA=../data/shanghai_map.xml
+MAPDATA=../data/beijing.xml
 
 // title of main window
 TITLE=Zby's Map
 
 // objects with size >= 1/DISPLAY_FACTOR of current display level will be shown
-DISPLAY_FACTOR=80
+DISPLAY_FACTOR=20
 
 
 // total level count
@@ -16,4 +16,27 @@ LEVEL_RES0=0
 LEVEL_RES1=0.02
 LEVEL_RES2=0.08
 LEVEL_RES3=0.25
+
+
+// total way type count
+WAYTYPE_TOTAL=11
+
+// way type defination: name|level|r|g|b|thick
+//    name  : type name
+//    level : -1 means auto-detect, -2 means max-level
+//    r,g,b : from 0.0 to 1.0
+//    thick : not implemented
+// type 0 is default drawing type
+//            name             |level|r  |g  |b  |thick
+WAYTYPE_TYPE0=default          |-1   |1.0|1.0|1.0|-1
+WAYTYPE_TYPE1=motorway         |3    |1.0|0  |0  |-1
+WAYTYPE_TYPE2=motorway_link    |3    |1.0|0  |0  |-1
+WAYTYPE_TYPE3=trunk            |3    |0  |1.0|0  |-1
+WAYTYPE_TYPE4=trunk_link       |3    |0  |1.0|0  |-1
+WAYTYPE_TYPE5=primary          |3    |0  |0  |1  |-1
+WAYTYPE_TYPE6=primary_link     |3    |0  |0  |1  |-1
+WAYTYPE_TYPE7=secondary        |2    |0  |1  |1  |-1
+WAYTYPE_TYPE8=secondary_link   |2    |0  |1  |1  |-1
+WAYTYPE_TYPE9=tertiary         |1    |1  |1  |0  |-1
+WAYTYPE_TYPE10=tertiary_link   |1    |1  |1  |0  |-1
 

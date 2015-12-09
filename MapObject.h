@@ -39,7 +39,10 @@ class MapWay : public MapObject {
     public:
     //virtual ObjectType type();
     //int level;
+    int waytype;
     std::vector<MapNode *> nl; // nl: node list
+    
+    //static bool compare_by_waytype(MapWay *a, MapWay *b); // useful when sorting ways
     void add_node(MapNode *node);
     //void set_level(int level);
 };

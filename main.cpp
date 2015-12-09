@@ -17,12 +17,9 @@ int main(int argc, char *argv[])
 {
     //HeapProfilerStart("pj_hp");
     cfgp.load("config.txt");
-    xmlldr.target(&md);
-    xmlldr.load(cfgp.query("MAPDATA"));    
-    
     // load level configurations
     int tot_lvl;
-    tot_lvl = str2double(cfgp.query("LEVEL_TOTAL"));
+    tot_lvl = str2LL(cfgp.query("LEVEL_TOTAL"));
     md.dfactor = str2double(cfgp.query("DISPLAY_FACTOR"));
     for (int lvl = 0; lvl < tot_lvl; lvl++) {
         char buf[MAXLINE];
@@ -31,6 +28,20 @@ int main(int argc, char *argv[])
         res = str2double(cfgp.query(buf));
         md.ml.add_level(res);
     }
+    
+    // load waytype configurations
+    int tot_waytype;
+    tot_waytype = str2LL(cfgp.query("WAYTYPE_TOTAL"));
+    for (int tid = 0; tid < tot_waytype; tid++) {
+        char buf[MAXLINE];
+        sprintf(buf, "WAYTYPE_TYPE%d", tid);
+        md.wt.insert(cfgp.query(buf));
+    }
+    
+    
+    
+    xmlldr.target(&md);
+    xmlldr.load(cfgp.query("MAPDATA"));    
     
     md.construct();
     md.print_stat();

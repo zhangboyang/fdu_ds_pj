@@ -106,10 +106,17 @@ void MapData::construct()
         lrt.resize(ml.get_level_count());
         for (vector<MapLine *>::iterator lit = ll.begin(); lit != ll.end(); lit++) {
             MapLine *line = *lit;
-            MapRect r = line->get_rect();
-            double res = max(r.top - r.bottom, r.right - r.left) * dfactor;
-            //printf("res=%f lvl=%d\n", res, ml.select_level(res));
-            for (int lvl = 0; lvl <= ml.select_level(res); lvl++)
+            int slvl = wt.query_level(line->way->waytype); // suggested level
+            if (slvl == -1) {
+                MapRect r = line->get_rect();
+                double res = max(r.top - r.bottom, r.right - r.left) * dfactor;
+                //printf("res=%f lvl=%d\n", res, ml.select_level(res));
+                slvl = ml.select_level(res);
+            } else if (slvl == -2) {
+                slvl = ml.get_level_count() - 1;
+            }
+            assert(slvl >= 0);
+            for (int lvl = 0; lvl <= slvl; lvl++)
                 lrt[lvl].insert(line);
         }
     })
