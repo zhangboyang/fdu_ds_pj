@@ -38,10 +38,10 @@ class MapNode : public MapObject {
 class MapWay : public MapObject {
     public:
     //virtual ObjectType type();
-    int level;
+    //int level;
     std::vector<MapNode *> nl; // nl: node list
     void add_node(MapNode *node);
-    void set_level(int level);
+    //void set_level(int level);
 };
 
 class MapLine : public MapObject {

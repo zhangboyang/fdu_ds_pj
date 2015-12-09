@@ -11,6 +11,11 @@ using namespace std;
 
 void MapGraphics::target(MapData *md) { MapGraphics::md = md; }
 
+double MapGraphics::get_display_resolution()
+{
+    return (md->maxy - md->miny) * pow(ZOOMSTEP, zoom_level);
+}
+
 void MapGraphics::trans_gcoord(double x, double y, double *gx, double *gy)
 {
     *gx = x - md->minx;
@@ -28,11 +33,13 @@ void MapGraphics::rtrans_gcoord(double gx, double gy, double *x, double *y)
 #endif
 }
 
+
 void MapGraphics::set_display_range(double dminx, double dmaxx, double dminy, double dmaxy)
 {
     assert(dminx < dmaxx); assert(dminy < dmaxy);
     trans_gcoord(dminx, dminy, &(MapGraphics::dminx), &(MapGraphics::dminy));  // set limit for MapGraphics
     trans_gcoord(dmaxx, dmaxy, &(MapGraphics::dmaxx), &(MapGraphics::dmaxy));
+    zoom_level = 0;
 }
 
 void MapGraphics::move_display_range(int x, int y)
@@ -52,12 +59,14 @@ void MapGraphics::move_display_range(int x, int y)
 void MapGraphics::zoom_display_range(int f)
 {
     double diffx = (dmaxx - dminx) * (1 - pow(ZOOMSTEP, f));
-    dmaxx -= diffx;
-    dminx += diffx;
+    dmaxx -= diffx / 2;
+    dminx += diffx / 2;
     
     double diffy = (dmaxy - dminy) * (1 - pow(ZOOMSTEP, f));
-    dmaxy -= diffy;
-    dminy += diffy;
+    dmaxy -= diffy / 2;
+    dminy += diffy / 2;
+    
+    zoom_level += f;
 }
 
 void MapGraphics::reset_display_range()
@@ -67,14 +76,16 @@ void MapGraphics::reset_display_range()
 
 void MapGraphics::map_operation(MapGraphicsOperation op)
 {
-    if (op == UP) move_display_range(0, 1);
-    else if (op == DOWN) move_display_range(0, -1);
-    else if (op == LEFT) move_display_range(-1, 0);
-    else if (op == RIGHT) move_display_range(1, 0);
-    else if (op == ZOOMOUT) zoom_display_range(-1);
-    else if (op == ZOOMIN) zoom_display_range(1);
-    else if (op == RESETVIEW) reset_display_range();
-    else assert(0);
+    switch (op) {
+        case UP: move_display_range(0, 1); break;
+        case DOWN: move_display_range(0, -1); break;
+        case LEFT: move_display_range(-1, 0); break;
+        case RIGHT: move_display_range(1, 0); break;
+        case ZOOMOUT: zoom_display_range(-1); break;
+        case ZOOMIN: zoom_display_range(1); break;
+        case RESETVIEW: reset_display_range(); break;
+        default: assert(0); break;
+    }
 }
 
 static MapGraphics *mgptr = NULL;
@@ -88,6 +99,8 @@ void MapGraphics::redraw()
     glLoadIdentity();
     gluOrtho2D(dminx, dmaxx, dminy, dmaxy);
     printd("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
+    printf("disp-res: %f\n", get_display_resolution());
+    printf("zoom-level: %d\n", zoom_level);
     
     double mminx, mmaxx, mminy, mmaxy;
     rtrans_gcoord(dminx, dminy, &mminx, &mminy);
@@ -95,8 +108,10 @@ void MapGraphics::redraw()
     
     vector<MapLine *> result;
     result.clear();
-    for (int lvl = 0; lvl < MapData::MAXLEVEL; lvl++)
-        md->lrt[lvl].find(result, MapRect(mminx, mmaxx, mminy, mmaxy));
+    int lvl_low_limit = md->ml.select_level(get_display_resolution());
+    int lvl_high_limit = md->ml.get_level_count();
+    printf("display level: %d of %d\n", lvl_low_limit + 1, lvl_high_limit);
+    md->lrt[lvl_low_limit].find(result, MapRect(mminx, mmaxx, mminy, mmaxy));
     
     printf("r-tree result count: %lld\n", (LL) result.size());
     
@@ -166,7 +181,6 @@ void MapGraphics::reshape(int width, int height)
 void redraw_wrapper() { assert(mgptr); TIMING("redraw", { mgptr->redraw(); }) }
 void reshape_wrapper(int width, int height) { assert(mgptr); mgptr->reshape(width, height); }
 void special_keyevent_wrapper(int key, int x, int y) { assert(mgptr); mgptr->special_keyevent(key, x, y); }
-
 
 void MapGraphics::show(const char *title, int argc, char *argv[])
 {

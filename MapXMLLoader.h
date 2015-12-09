@@ -13,6 +13,7 @@ class MapXMLLoader {
     void print_current_node();
     LL get_LL_attr(const char *aname);
     double get_double_attr(const char *aname);
+    char *get_string_attr(const char *aname, char *buf, int size);
     void process_node();
     
     public:

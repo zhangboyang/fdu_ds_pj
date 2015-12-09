@@ -55,8 +55,18 @@ double MapXMLLoader::get_double_attr(const char *aname)
     return ret;
 }
 
+char *MapXMLLoader::get_string_attr(const char *aname, char *buf, int size)
+{
+    char *str = (char *) xmlTextReaderGetAttribute(rdr, (xmlChar *) aname);
+    strncpy(buf, str, size);
+    buf[size - 1] = '\0';
+    xmlFree(str);
+    return buf;
+}
+
 void MapXMLLoader::process_node()
-{    
+{
+    //char buf[MAXLINE];
     int deepth = xmlTextReaderDepth(rdr);
     int ntype = xmlTextReaderNodeType(rdr);
     
@@ -68,7 +78,15 @@ void MapXMLLoader::process_node()
         // process child of 'way', see processing 'way' below
         if (strcmp(name, "nd") == 0)
             mway_ptr->add_node(md->get_node_by_id(get_LL_attr("ref")));
-        mway_ptr->set_level(0);
+        /*else if (strcmp(name, "tag") == 0) {
+            if (strcmp(get_string_attr("k", buf, sizeof(buf)), "highway") == 0) {
+                get_string_attr("v", buf, sizeof(buf));
+                if (strcmp(buf, "secondary") == 0) {
+                    //mway_ptr->set_level(3);
+                }
+                //printf("highway->%s\n", buf);
+            }
+        }*/
         return;
     }
     
@@ -87,6 +105,7 @@ void MapXMLLoader::process_node()
         MapWay *mway = new MapWay;
         mway->set_id(id);
         md->insert(mway);
+        //mway->set_level(0);
         mway_ptr = mway; // process child later
     } else if (strcmp(name, "relation") == 0) {
         static int x = 0; // FIXME: 'relation' not implemented

@@ -102,9 +102,15 @@ void MapData::construct()
             construct_line_by_signal_way(*wit);
         
         // put lines to r-tree
+        assert(ml.get_level_count() > 0);
+        lrt.resize(ml.get_level_count());
         for (vector<MapLine *>::iterator lit = ll.begin(); lit != ll.end(); lit++) {
             MapLine *line = *lit;
-            lrt[line->way->level].insert(line);
+            MapRect r = line->get_rect();
+            double res = max(r.top - r.bottom, r.right - r.left) * dfactor;
+            //printf("res=%f lvl=%d\n", res, ml.select_level(res));
+            for (int lvl = 0; lvl <= ml.select_level(res); lvl++)
+                lrt[lvl].insert(line);
         }
     })
 }

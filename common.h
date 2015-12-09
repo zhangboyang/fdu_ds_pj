@@ -18,7 +18,11 @@ typedef unsigned long long ULL;
 /* timing() ... */
 #include "timing.h"
 
+/* fqeu() */
 #define eps 1e-6
 #define fequ(a, b) (fabs((a) - (b)) < eps)
+
+/* common buffer size */
+#define MAXLINE 4096
 
 #endif

@@ -7,8 +7,6 @@
 #include <string>
 using namespace std;
 
-#define MAXLINE 4096
-
 void ConfigFilePraser::load(const char *fn)
 {
     /* c-style reading and prasing */
