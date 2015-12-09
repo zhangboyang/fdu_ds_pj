@@ -4,7 +4,9 @@
 #include "common.h"
 #include "MapData.h"
 #include "MapGraphics.h"
+#include "MapRect.h"
 
+#include <algorithm>
 using namespace std;
 
 void MapGraphics::target(MapData *md) { MapGraphics::md = md; }
@@ -13,6 +15,17 @@ void MapGraphics::trans_gcoord(double x, double y, double *gx, double *gy)
 {
     *gx = x - md->minx;
     *gy = y - md->miny;
+}
+
+void MapGraphics::rtrans_gcoord(double gx, double gy, double *x, double *y)
+{
+    *x = gx + md->minx;
+    *y = gy + md->miny;
+#ifdef DEBUG
+    double gx2, gy2;
+    trans_gcoord(*x, *y, &gx2, &gy2);
+    assert(fequ(gx2, gx) && fequ(gy2, gy));
+#endif
 }
 
 void MapGraphics::set_display_range(double dminx, double dmaxx, double dminy, double dmaxy)
@@ -76,16 +89,22 @@ void MapGraphics::redraw()
     gluOrtho2D(dminx, dmaxx, dminy, dmaxy);
     printd("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
     
-    /*for (vector<MapNode *>::iterator it = md->nl.begin(); it != md->nl.end(); it++) {
-        double gx, gy;
-        //printf("%p\n", *it);
-        (*it)->get_gcoord(&gx, &gy);
-        printf("%f %f\n", gx, gy);
-        glVertex2d(gx, gy);
-    }*/
+    double mminx, mmaxx, mminy, mmaxy;
+    rtrans_gcoord(dminx, dminy, &mminx, &mminy);
+    rtrans_gcoord(dmaxx, dmaxy, &mmaxx, &mmaxy);
     
-    //static int x = 0;
-    for (vector<MapWay *>::iterator wit = md->wl.begin(); wit != md->wl.end(); wit++) {
+    vector<MapLine *> result;
+    md->lrt.find(result, MapRect(mminx, mmaxx, mminy, mmaxy));
+    
+    printf("r-tree result count: %lld\n", (LL) result.size());
+    
+    vector<MapWay *> dwl;
+    for (vector<MapLine *>::iterator lit = result.begin(); lit != result.end(); lit++)
+        dwl.push_back((*lit)->way);
+    sort(dwl.begin(), dwl.end());
+    dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
+    
+    for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
         //if (wit - md->wl.begin() >= x) { x++; break; }
         //printf("drawing %lld\n", (*wit)->id);
         glBegin(GL_LINE_STRIP);

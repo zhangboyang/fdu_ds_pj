@@ -1,6 +1,7 @@
 #ifndef ZBY_MAPOBJECT_H
 #define ZBY_MAPOBJECT_H
 #include "common.h"
+#include "MapRect.h"
 
 #include <vector>
 #include <map>
@@ -34,20 +35,23 @@ class MapNode : public MapObject {
     //virtual ObjectType type();
 };
 
+class MapWay : public MapObject {
+    public:
+    //virtual ObjectType type();
+    std::vector<MapNode *> nl; // nl: node list
+    void add_node(MapNode *node);
+};
+
 class MapLine : public MapObject {
     public:
     //virtual ObjectType type();
     //double x1, y1;
     //double x2, y2;
     MapNode *p1, *p2;
+    MapWay *way;
     void set_line(MapNode *p1, MapNode *p2);
-};
-
-class MapWay : public MapObject {
-    public:
-    //virtual ObjectType type();
-    std::vector<MapNode *> nl; // nl: node list
-    void add_node(MapNode *node);
+    void set_way(MapWay *way);
+    MapRect get_rect();
 };
 
 class MapRelation : public MapObject {

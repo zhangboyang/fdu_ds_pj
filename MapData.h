@@ -2,7 +2,7 @@
 #define ZBY_MAPDATA_H
 #include "common.h"
 #include "MapObject.h"
-
+#include "MapRTree.h"
 #include <vector>
 #include <map>
 
@@ -16,6 +16,8 @@ class MapData {
     std::map<LL, MapNode *> nm; // m: map from id to object pointer
     std::map<LL, MapWay *> wm;
     std::map<LL, MapRelation *> rm;
+    
+    MapRTree<MapLine *> lrt;
     
     double minlat, minlon;
     double maxlat, maxlon;

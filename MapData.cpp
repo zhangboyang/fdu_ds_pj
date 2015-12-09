@@ -79,6 +79,8 @@ void MapData::construct()
     assert(ll.size() == 0);
     
     TIMING ("mapdata construct", {
+    
+        // construct lines
         for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++) {
             MapWay *way = *wit;
             MapNode *last_node = NULL;
@@ -87,11 +89,19 @@ void MapData::construct()
                 if (last_node) {
                     MapLine *line = new MapLine;
                     line->set_line(last_node, node);
+                    line->set_way(way);
                     insert(line);
                 }
                 last_node = node;
             }
         }
+        
+        // put lines to r-tree
+        for (vector<MapLine *>::iterator lit = ll.begin(); lit != ll.end(); lit++) {
+            MapLine *line = *lit;
+            lrt.insert(line);
+        }
+        
     })
 }
 

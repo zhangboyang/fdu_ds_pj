@@ -24,6 +24,7 @@ class MapGraphics {
     
     void target(MapData *md);
     void trans_gcoord(double x, double y, double *gx, double *gy);
+    void rtrans_gcoord(double gx, double gy, double *x, double *y);
     void set_display_range(double dminx, double dmaxx, double dminy, double dmaxy);
     void move_display_range(int x, int y);
     void zoom_display_range(int f);
