@@ -13,6 +13,8 @@ MapData::~MapData()
     printd("destructing mapdata object %p\n", this);
     for (std::vector<MapNode *>::iterator it = nl.begin(); it != nl.end(); it++)
         delete *it;
+    for (std::vector<MapLine *>::iterator it = ll.begin(); it != ll.end(); it++)
+        delete *it;
     for (std::vector<MapWay *>::iterator it = wl.begin(); it != wl.end(); it++)
         delete *it;
     for (std::vector<MapRelation *>::iterator it = rl.begin(); it != rl.end(); it++)
@@ -71,6 +73,21 @@ MapNode *MapData::get_node_by_id(LL id)
     return it->second;
 }
 
+void MapData::construct_line_by_signal_way(MapWay *way)
+{
+    MapNode *last_node = NULL;
+    for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
+        MapNode *node = *nit;
+        if (last_node) {
+            MapLine *line = new MapLine;
+            line->set_line(last_node, node);
+            line->set_way(way);
+            insert(line);
+        }
+        last_node = node;
+    }
+}
+
 void MapData::construct()
 {
     assert(nl.size() > 0 && nl.size() == nm.size());
@@ -81,27 +98,14 @@ void MapData::construct()
     TIMING ("mapdata construct", {
     
         // construct lines
-        for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++) {
-            MapWay *way = *wit;
-            MapNode *last_node = NULL;
-            for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
-                MapNode *node = *nit;
-                if (last_node) {
-                    MapLine *line = new MapLine;
-                    line->set_line(last_node, node);
-                    line->set_way(way);
-                    insert(line);
-                }
-                last_node = node;
-            }
-        }
+        for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++)
+            construct_line_by_signal_way(*wit);
         
         // put lines to r-tree
         for (vector<MapLine *>::iterator lit = ll.begin(); lit != ll.end(); lit++) {
             MapLine *line = *lit;
-            lrt.insert(line);
+            lrt[line->way->level].insert(line);
         }
-        
     })
 }
 

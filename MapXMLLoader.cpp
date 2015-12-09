@@ -68,6 +68,7 @@ void MapXMLLoader::process_node()
         // process child of 'way', see processing 'way' below
         if (strcmp(name, "nd") == 0)
             mway_ptr->add_node(md->get_node_by_id(get_LL_attr("ref")));
+        mway_ptr->set_level(0);
         return;
     }
     

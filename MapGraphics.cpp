@@ -94,15 +94,20 @@ void MapGraphics::redraw()
     rtrans_gcoord(dmaxx, dmaxy, &mmaxx, &mmaxy);
     
     vector<MapLine *> result;
-    md->lrt.find(result, MapRect(mminx, mmaxx, mminy, mmaxy));
+    result.clear();
+    for (int lvl = 0; lvl < MapData::MAXLEVEL; lvl++)
+        md->lrt[lvl].find(result, MapRect(mminx, mmaxx, mminy, mmaxy));
     
     printf("r-tree result count: %lld\n", (LL) result.size());
     
     vector<MapWay *> dwl;
     for (vector<MapLine *>::iterator lit = result.begin(); lit != result.end(); lit++)
         dwl.push_back((*lit)->way);
+
     sort(dwl.begin(), dwl.end());
     dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
+    printf("need to draw %lld ways\n", (LL) dwl.size());
+    
     
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
         //if (wit - md->wl.begin() >= x) { x++; break; }

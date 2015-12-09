@@ -40,6 +40,7 @@ MapRect MapLine::get_rect()
 /* MapWay */
 //MapObject::ObjectType MapWay::type() { return WAY; }
 void MapWay::add_node(MapNode *node) { nl.push_back(node); }
+void MapWay::set_level(int level) { MapWay::level = level; }
 
 /* MapRelation */
 //MapObject::ObjectType MapRelation::type() { return RELATION; }

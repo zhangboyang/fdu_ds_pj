@@ -20,12 +20,9 @@ void MapRTree<TP>::insert(TP obj) { a.push_back(obj); }
 template <class TP>
 void MapRTree<TP>::find(std::vector<TP> &result, const MapRect &rect)
 {
-    result.clear();
-    typename std::vector<TP>::iterator it;
-    for (it = a.begin(); it != a.end(); it++) {
+    for (typename std::vector<TP>::iterator it = a.begin(); it != a.end(); it++)
         if (rect.intersect((*it)->get_rect()))
             result.push_back(*it);
-    }
 }
 
 #endif
