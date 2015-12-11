@@ -113,9 +113,9 @@ void MapGraphics::redraw()
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(dminx, dmaxx, dminy, dmaxy);
-    printd("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
-    printf("disp-res: %f\n", get_display_resolution());
-    printf("zoom-level: %d\n", zoom_level);
+//    printd("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
+//    printf("disp-res: %f\n", get_display_resolution());
+//    printf("zoom-level: %d\n", zoom_level);
     
     double mminx, mmaxx, mminy, mmaxy;
     rtrans_gcoord(dminx, dminy, &mminx, &mminy);
@@ -124,10 +124,10 @@ void MapGraphics::redraw()
     vector<MapLine *> result;
     result.clear();
     int lvl_low_limit = md->ml.select_level(get_display_resolution());
-    printf("display level: %d\n", lvl_low_limit);
+//    printf("display level: %d\n", lvl_low_limit);
     md->lrt[lvl_low_limit].find(result, MapRect(mminx, mmaxx, mminy, mmaxy));
     
-    printf("r-tree result count: %lld\n", (LL) result.size());
+//    printf("r-tree result count: %lld\n", (LL) result.size());
     
     vector<MapWay *> dwl;
     for (vector<MapLine *>::iterator lit = result.begin(); lit != result.end(); lit++)
@@ -135,7 +135,7 @@ void MapGraphics::redraw()
 
     sort(dwl.begin(), dwl.end());
     dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
-    printf("need to draw %lld ways\n", (LL) dwl.size());
+//    printf("need to draw %lld ways\n", (LL) dwl.size());
 //    sort(dwl.begin(), dwl.end(), MapWay::compare_by_waytype);
     
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
@@ -195,7 +195,7 @@ void MapGraphics::reshape(int width, int height)
     glutPostRedisplay();
 }
 
-
+//void redraw_wrapper() { assert(mgptr); mgptr->redraw(); }
 void redraw_wrapper() { assert(mgptr); TIMING("redraw", { mgptr->redraw(); }) }
 void reshape_wrapper(int width, int height) { assert(mgptr); mgptr->reshape(width, height); }
 void special_keyevent_wrapper(int key, int x, int y) { assert(mgptr); mgptr->special_keyevent(key, x, y); }
@@ -219,6 +219,7 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     glutSpecialFunc(special_keyevent_wrapper);
     glutDisplayFunc(redraw_wrapper);
     glutReshapeFunc(reshape_wrapper);
+    //glutIdleFunc(redraw_wrapper);
     
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glutMainLoop(); // never return

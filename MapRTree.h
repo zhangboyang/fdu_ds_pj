@@ -8,7 +8,7 @@
 #include <vector>
 
 #ifdef DEBUG
-#define WITH_BRUTE_FORCE
+//#define WITH_BRUTE_FORCE
 #endif
 
 #ifdef DEBUG
@@ -27,9 +27,10 @@ class MapRTree {
         public:
         MapRect rect; // data-node should also have vaild rect
         int ch_cnt; // ch_cnt == -1, means this node is a data-node
-        node *ch[Mhigh];
-        
-        TP data; // only data-node have data
+        union {
+            node *ch[Mhigh];
+            TP data; // only data-node have data
+        };
         
         #ifdef DEBUG
         void print()
@@ -315,6 +316,19 @@ class MapRTree {
         }
     }
     
+    void tree_destruct(node *root)
+    {
+        for (int i = 0; i < root->ch_cnt; i++)
+            tree_destruct(root->ch[i]);
+        delete root;
+    }
+    
+    
+    // make MapRTree non-copyable
+    // copying a tree is very dangerous
+    // especially when the original tree is destructed
+    MapRTree(const MapRTree&);
+    MapRTree& operator = (const MapRTree&);
 
     #ifdef WITH_BRUTE_FORCE
     std::vector<TP> bf_data;
@@ -330,7 +344,11 @@ class MapRTree {
         assert((Mhigh + 1) / 2 >= Mlow);
     }
     
-    
+    ~MapRTree()
+    {
+        printd("destructing r-tree object %p\n", this);
+        if (root) tree_destruct(root);
+    }
     
     // tree_ functions' wrapper, to verify with brute-force
     void insert(TP obj) {

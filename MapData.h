@@ -27,7 +27,7 @@ class MapData {
     MapLevel ml;
     MapWayType wt;
     int dfactor; // display factor
-    std::vector<MapRTree<MapLine *> > lrt;
+    MapRTree<MapLine *> *lrt;
 
     double minx, miny;
     double maxx, maxy;

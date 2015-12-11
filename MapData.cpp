@@ -19,6 +19,7 @@ MapData::~MapData()
         delete *it;
     for (std::vector<MapRelation *>::iterator it = rl.begin(); it != rl.end(); it++)
         delete *it;
+    delete[] lrt;
 }
 
 void MapData::insert(MapNode *node) { nl.push_back(node); nm.insert(make_pair(node->id, node)); }
@@ -103,7 +104,8 @@ void MapData::construct()
         
         // put lines to r-tree
         assert(ml.get_level_count() > 0);
-        lrt.resize(ml.get_level_count());
+        lrt = new MapRTree<MapLine *> [ml.get_level_count()];
+        
         for (vector<MapLine *>::iterator lit = ll.begin(); lit != ll.end(); lit++) {
             MapLine *line = *lit;
             int slvl = wt.query_level(line->way->waytype); // suggested level

@@ -24,6 +24,7 @@ bool MapRect::intersect(const MapRect &a, const MapRect &b)
 {
     RECT_CHECK(a) RECT_CHECK(b)
     bool ret = !(b.top < a.bottom || b.bottom > a.top || b.right < a.left || b.left > a.right);
+    assert(ret == !(a.top < b.bottom || a.bottom > b.top || a.right < b.left || a.left > b.right));
     return ret;
 }
 
