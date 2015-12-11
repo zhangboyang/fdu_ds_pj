@@ -10,11 +10,13 @@ class MapGraphics {
         UP, DOWN, LEFT, RIGHT,
         ZOOMOUT, ZOOMIN,
         RESETVIEW,
+        TOGGLE_RTREE,
     };
     
     double dminx, dmaxx, dminy, dmaxy;
     int window_width, window_height;
     int zoom_level;
+    int show_rtree;
     MapData *md;
     
     void trans_gcoord(double x, double y, double *gx, double *gy);

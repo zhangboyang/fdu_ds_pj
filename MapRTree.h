@@ -21,7 +21,7 @@
 template <class TP>
 class MapRTree {
     private:
-    static const int Mhigh = 10;
+    static const int Mhigh = 8;
     static const int Mlow = Mhigh / 2;
     class node {
         public:
@@ -196,8 +196,8 @@ class MapRTree {
             
             rect = g1; ch_cnt = p1;
             nnode->rect = g2; nnode->ch_cnt = p2;
-            assert(Mlow <= ch_cnt && ch_cnt < Mhigh);
-            assert(Mlow <= nnode->ch_cnt && nnode->ch_cnt < Mhigh);
+            assert(Mlow <= ch_cnt && ch_cnt <= Mhigh);
+            assert(Mlow <= nnode->ch_cnt && nnode->ch_cnt <= Mhigh);
             assert(ch_cnt + nnode->ch_cnt == Mhigh + 1);
             #ifdef DEBUG
             //printf("ch1:"); for (int i = 0; i < p1; i++) printf(" %p", ch1[i]); printf("\n");
@@ -245,8 +245,8 @@ class MapRTree {
         //   since it has very small chance that two doubles are equal
         int cid = 0; // choosen child's id
         for (int i = 1; i < root->ch_cnt; i++)
-            if (root->ch[cid]->enlargement(dnode) < root->ch[i]->enlargement(dnode))
-                cid = i;
+            if (root->ch[i]->enlargement(dnode) < root->ch[cid]->enlargement(dnode))
+                cid = i; // choose the smaller one
         
         tree_insert(root->ch[cid], dnode, nnode);
         
@@ -323,6 +323,14 @@ class MapRTree {
         delete root;
     }
     
+    // copy all r-tree rectanges to a vector
+    // useful for learning r-tree internal details
+    void tree_rect(std::vector<MapRect> &result, node *root)
+    {
+        result.push_back(root->rect);
+        for (int i = 0; i < root->ch_cnt; i++)
+            tree_rect(result, root->ch[i]);
+    }
     
     // make MapRTree non-copyable
     // copying a tree is very dangerous
@@ -350,6 +358,8 @@ class MapRTree {
         if (root) tree_destruct(root);
     }
     
+    
+    
     // tree_ functions' wrapper, to verify with brute-force
     void insert(TP obj) {
         tree_insert(obj);
@@ -359,6 +369,7 @@ class MapRTree {
     }
     void find(std::vector<TP> &result, const MapRect &rect)
     {
+        if (!root) return;
         #ifdef WITH_BRUTE_FORCE
         std::vector<TP> rt_result;
         tree_search(rt_result, root, rect);
@@ -392,6 +403,11 @@ class MapRTree {
         #else
         tree_search(result, root, rect);
         #endif
+    }
+    
+    void get_all_tree_rect(std::vector<MapRect> &result)
+    {
+        if (root) tree_rect(result, root);
     }
 };
 

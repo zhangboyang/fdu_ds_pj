@@ -99,6 +99,7 @@ void MapGraphics::map_operation(MapGraphicsOperation op)
         case ZOOMOUT: zoom_display_range(-1); break;
         case ZOOMIN: zoom_display_range(1); break;
         case RESETVIEW: reset_display_range(); break;
+        case TOGGLE_RTREE: show_rtree ^= 1; break;
         default: assert(0); break;
     }
 }
@@ -113,7 +114,7 @@ void MapGraphics::redraw()
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(dminx, dmaxx, dminy, dmaxy);
-//    printd("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
+//    printf("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
 //    printf("disp-res: %f\n", get_display_resolution());
 //    printf("zoom-level: %d\n", zoom_level);
     
@@ -124,10 +125,28 @@ void MapGraphics::redraw()
     vector<MapLine *> result;
     result.clear();
     int lvl_low_limit = md->ml.select_level(get_display_resolution());
-//    printf("display level: %d\n", lvl_low_limit);
+    printf("display level: %d\n", lvl_low_limit);
     md->lrt[lvl_low_limit].find(result, MapRect(mminx, mmaxx, mminy, mmaxy));
+    printf("r-tree result count: %lld\n", (LL) result.size());
+
+    if (show_rtree) {
+        vector<MapRect> rtree_rects;
+        md->lrt[lvl_low_limit].get_all_tree_rect(rtree_rects);
+        printf("rect count = %lld\n", (LL) rtree_rects.size());
+        for (vector<MapRect>::iterator rit = rtree_rects.begin(); rit != rtree_rects.end(); rit++) {
+            glBegin(GL_LINE_LOOP);
+            glColor3f(0.0f, 1.0f, 0.0f);
+            MapRect &rect = *rit;
+            trans_gcoord(rect.left, rect.bottom, &rect.left, &rect.bottom);
+            trans_gcoord(rect.right, rect.top, &rect.right, &rect.top);
+            glVertex2d(rect.left, rect.bottom);
+            glVertex2d(rect.right, rect.bottom);
+            glVertex2d(rect.right, rect.top);
+            glVertex2d(rect.left, rect.top);
+            glEnd();
+        }
+    }
     
-//    printf("r-tree result count: %lld\n", (LL) result.size());
     
     vector<MapWay *> dwl;
     for (vector<MapLine *>::iterator lit = result.begin(); lit != result.end(); lit++)
@@ -135,7 +154,7 @@ void MapGraphics::redraw()
 
     sort(dwl.begin(), dwl.end());
     dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
-//    printf("need to draw %lld ways\n", (LL) dwl.size());
+    printf("need to draw %lld ways\n", (LL) dwl.size());
 //    sort(dwl.begin(), dwl.end(), MapWay::compare_by_waytype);
     
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
@@ -164,6 +183,7 @@ void MapGraphics::special_keyevent(int key, int x, int y)
 {
     MapGraphicsOperation op;
     switch (key) {
+        case GLUT_KEY_F2: op = TOGGLE_RTREE; break;
         case GLUT_KEY_F1: op = RESETVIEW; break;
         case GLUT_KEY_UP: op = UP; break;
         case GLUT_KEY_DOWN: op = DOWN; break;
@@ -206,11 +226,12 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     assert(mgptr == NULL); // can't create MapGraphics twice
     mgptr = this;
     
-    /* glut things */
+    show_rtree = 0;
     window_width = INITIAL_WINDOW_HEIGHT * md->map_ratio;
     window_height = INITIAL_WINDOW_HEIGHT;
     reset_display_range();
     
+    /* glut things */
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutInitWindowSize(window_width, window_height);
