@@ -108,9 +108,7 @@ void MapData::construct()
             MapLine *line = *lit;
             int slvl = wt.query_level(line->way->waytype); // suggested level
             if (slvl == -1) {
-                MapRect r = line->get_rect();
-                double res = max(r.top - r.bottom, r.right - r.left) * dfactor;
-                //printf("res=%f lvl=%d\n", res, ml.select_level(res));
+                double res = line->get_rect().max_distance() * dfactor;
                 slvl = ml.select_level(res);
             } else if (slvl == -2) {
                 slvl = ml.get_level_count() - 1;

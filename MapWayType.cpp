@@ -17,11 +17,11 @@ void MapWayType::insert(const char *str)
     name2id.insert(make_pair(key, id));
 }
 
-int MapWayType::query_id(const char *name)
+int MapWayType::query_id(const std::string &name)
 {
     assert(data.size() > 0);
     std::map<std::string, int>::iterator it;
-    it = name2id.find(std::string(name));
+    it = name2id.find(name);
     if (it == name2id.end()) return 0; // return default type 0 when not found
     return it->second;
 }

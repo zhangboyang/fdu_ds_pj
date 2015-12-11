@@ -25,7 +25,7 @@ class MapRect {
 
     static bool intersect(const MapRect &a, const MapRect &b);
     bool intersect(const MapRect &b) const;
-
+    double max_distance();
 };
 
 #endif

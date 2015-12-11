@@ -1,3 +1,4 @@
+#include <cmath>
 #include "common.h"
 #include "MapRect.h"
 
@@ -15,4 +16,6 @@ bool MapRect::intersect(const MapRect &a, const MapRect &b)
     bool ret = !(b.top < a.bottom || b.bottom > a.top || b.right < a.left || b.left > a.right);
     return ret;
 }
+
+double MapRect::max_distance() { RECT_CHECK(*this); return sqrt(sq(right - left) + sq(top - bottom)); }
 

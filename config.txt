@@ -1,5 +1,5 @@
 // map data
-MAPDATA=../data/beijing.xml
+MAPDATA=../data/shanghai_map.xml
 
 // title of main window
 TITLE=Zby's Map
@@ -22,21 +22,21 @@ LEVEL_RES3=0.25
 WAYTYPE_TOTAL=11
 
 // way type defination: name|level|r|g|b|thick
-//    name  : type name
+//    tagname/tagvalue  : tag
 //    level : -1 means auto-detect, -2 means max-level
 //    r,g,b : from 0.0 to 1.0
 //    thick : not implemented
 // type 0 is default drawing type
-//            name             |level|r  |g  |b  |thick
-WAYTYPE_TYPE0=default          |-1   |1.0|1.0|1.0|-1
-WAYTYPE_TYPE1=motorway         |3    |1.0|0  |0  |-1
-WAYTYPE_TYPE2=motorway_link    |3    |1.0|0  |0  |-1
-WAYTYPE_TYPE3=trunk            |3    |0  |1.0|0  |-1
-WAYTYPE_TYPE4=trunk_link       |3    |0  |1.0|0  |-1
-WAYTYPE_TYPE5=primary          |3    |0  |0  |1  |-1
-WAYTYPE_TYPE6=primary_link     |3    |0  |0  |1  |-1
-WAYTYPE_TYPE7=secondary        |2    |0  |1  |1  |-1
-WAYTYPE_TYPE8=secondary_link   |2    |0  |1  |1  |-1
-WAYTYPE_TYPE9=tertiary         |1    |1  |1  |0  |-1
-WAYTYPE_TYPE10=tertiary_link   |1    |1  |1  |0  |-1
+//            tagname/tagvalue         |level|r  |g  |b  |thick
+WAYTYPE_TYPE0 =highway/default         |-1   |1.0|1.0|1.0|-1
+WAYTYPE_TYPE1 =highway/motorway        |3    |1.0|0  |0  |-1
+WAYTYPE_TYPE2 =highway/motorway_link   |2    |1.0|0  |0  |-1
+WAYTYPE_TYPE3 =highway/trunk           |3    |0  |1.0|0  |-1
+WAYTYPE_TYPE4 =highway/trunk_link      |2    |0  |1.0|0  |-1
+WAYTYPE_TYPE5 =highway/primary         |3    |0  |0  |1  |-1
+WAYTYPE_TYPE6 =highway/primary_link    |2    |0  |0  |1  |-1
+WAYTYPE_TYPE7 =highway/secondary       |2    |0  |1  |1  |-1
+WAYTYPE_TYPE8 =highway/secondary_link  |1    |0  |1  |1  |-1
+WAYTYPE_TYPE9 =highway/tertiary        |1    |1  |1  |0  |-1
+WAYTYPE_TYPE10=highway/tertiary_link   |1    |1  |1  |0  |-1
 

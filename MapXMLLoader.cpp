@@ -80,8 +80,11 @@ void MapXMLLoader::process_node()
         else if (strcmp(name, "tag") == 0) {
             char buf[MAXLINE];
             if (strcmp(get_string_attr("k", buf, sizeof(buf)), "highway") == 0) {
+                std::string t(buf);
+                t += '/';
                 get_string_attr("v", buf, sizeof(buf));
-                mway_ptr->waytype = md->wt.query_id(buf);
+                t += buf;
+                mway_ptr->waytype = md->wt.query_id(t);
             }
         }
         return;

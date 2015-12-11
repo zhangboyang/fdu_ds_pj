@@ -44,13 +44,14 @@ void MapGraphics::set_display_range(double dminx, double dmaxx, double dminy, do
 
 void MapGraphics::move_display_range(int x, int y)
 {
+    double mdiff = min(dmaxx - dminx, dmaxy - dminy);
     if (x != 0) {
-        double diffx = (dmaxx - dminx) * MOVESTEP * x;
+        double diffx = mdiff * MOVESTEP * x;
         dmaxx += diffx;
         dminx += diffx;
     }
     if (y != 0) {
-        double diffy = (dmaxy - dminy) * MOVESTEP * y;
+        double diffy = mdiff * MOVESTEP * y;
         dmaxy += diffy;
         dminy += diffy;
     }
@@ -72,6 +73,20 @@ void MapGraphics::zoom_display_range(int f)
 void MapGraphics::reset_display_range()
 {
     set_display_range(md->minx, md->maxx, md->miny, md->maxy);
+    
+    double init_width = INITIAL_WINDOW_HEIGHT * md->map_ratio;
+    double init_height = INITIAL_WINDOW_HEIGHT;
+    
+    // do something like reshape()
+    double old_diffx = dmaxx - dminx;
+    double old_diffy = dmaxy - dminy;
+    double new_diffx = old_diffx / init_width * window_width;
+    double new_diffy = old_diffy / init_height * window_height;
+    
+    dmaxx = dmaxx + (new_diffx - old_diffx) / 2;
+    dminx = dminx - (new_diffx - old_diffx) / 2;
+    dmaxy = dmaxy + (new_diffy - old_diffy) / 2;
+    dminy = dminy - (new_diffy - old_diffy) / 2;
 }
 
 void MapGraphics::map_operation(MapGraphicsOperation op)
@@ -188,13 +203,13 @@ void special_keyevent_wrapper(int key, int x, int y) { assert(mgptr); mgptr->spe
 void MapGraphics::show(const char *title, int argc, char *argv[])
 {
     assert(md);
-    reset_display_range(); // FIXME: full map
     assert(mgptr == NULL); // can't create MapGraphics twice
     mgptr = this;
     
     /* glut things */
     window_width = INITIAL_WINDOW_HEIGHT * md->map_ratio;
     window_height = INITIAL_WINDOW_HEIGHT;
+    reset_display_range();
     
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);

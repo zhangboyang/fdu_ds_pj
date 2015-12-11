@@ -21,10 +21,12 @@ void ConfigFilePraser::load(const char *fn)
         if (*buf == ';' || *buf == '#') continue;
         if (strncmp(buf, "//", 2) == 0) continue;
         char *ptr = strchr(buf, '=');
+        char *val = ptr + 1;
         if (!ptr) fail("can't parse config file %s", fn);
-        *ptr++ = '\0';
+        while (ptr > buf && *(ptr - 1) == ' ') ptr--;
+        *ptr = '\0';
         //printd("key='%s' val='%s'\n", buf, ptr);
-        data.insert(make_pair(string(buf), string(ptr)));
+        data.insert(make_pair(string(buf), string(val)));
     }
 }
 
