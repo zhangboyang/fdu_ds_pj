@@ -4,17 +4,23 @@
 #include "MapXMLLoader.h"
 #include "MapData.h"
 #include "MapGraphics.h"
+#include "MapGUI.h"
 #include "str2type.h"
+#include "wstr.h"
 
 //#include <google/heap-profiler.h>
 
-ConfigFilePraser cfgp;
-MapData md;
-MapXMLLoader xmlldr;
-MapGraphics mg;
+static ConfigFilePraser cfgp;
+static MapData md;
+static MapXMLLoader xmlldr;
+static MapGraphics mg;
+static MapGUI mgui;
 
 int main(int argc, char *argv[])
 {
+    setlocale(LC_ALL, "zh_CN.UTF-8");
+    
+    //int test(); test(); return 0;
     //HeapProfilerStart("pj_hp");
     cfgp.load("config.txt");
     // load level configurations
@@ -49,6 +55,7 @@ int main(int argc, char *argv[])
     //HeapProfilerStop();
     
     mg.target(&md);
+    mg.target_gui(&mgui);
     mg.show(cfgp.query("TITLE"), argc, argv); // ui loop, never return
     
     assert(0);

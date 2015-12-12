@@ -77,16 +77,21 @@ MapNode *MapData::get_node_by_id(LL id)
 void MapData::construct_line_by_signal_way(MapWay *way)
 {
     MapNode *last_node = NULL;
+    MapLine *last_line = NULL;
     for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
         MapNode *node = *nit;
         if (last_node) {
             MapLine *line = new MapLine;
             line->set_line(last_node, node);
             line->set_way(way);
+            line->prev = last_line;
+            if (last_line) last_line->next = line;
             insert(line);
+            last_line = line;
         }
         last_node = node;
     }
+    if (last_line) last_line->next = NULL;
 }
 
 void MapData::construct()

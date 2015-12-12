@@ -3,14 +3,16 @@
 #include "common.h"
 #include "MapObject.h"
 #include "MapData.h"
+#include "MapGUI.h"
 
 class MapGraphics {
     private:
     enum MapGraphicsOperation {
         UP, DOWN, LEFT, RIGHT,
-        ZOOMOUT, ZOOMIN,
-        RESETVIEW,
+        ZOOM_OUT, ZOOM_IN,
+        RESET_VIEW,
         TOGGLE_RTREE,
+        QUERY_NAME,
     };
     
     double dminx, dmaxx, dminy, dmaxy;
@@ -18,6 +20,10 @@ class MapGraphics {
     int zoom_level;
     int show_rtree;
     MapData *md;
+    MapGUI *mgui;
+    
+    
+    void do_query_name();
     
     void trans_gcoord(double x, double y, double *gx, double *gy);
     void rtrans_gcoord(double gx, double gy, double *x, double *y);
@@ -36,6 +42,7 @@ class MapGraphics {
     static const double ZOOMSTEP = 0.8;
 
     void target(MapData *md);
+    void target_gui(MapGUI *mgui);
     void add_display_level(double res);
     
     void redraw();

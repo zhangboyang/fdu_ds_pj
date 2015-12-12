@@ -21,7 +21,7 @@
 template <class TP>
 class MapRTree {
     private:
-    static const int Mhigh = 8;
+    static const int Mhigh = 15;
     static const int Mlow = Mhigh / 2;
     class node {
         public:

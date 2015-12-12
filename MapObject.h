@@ -52,8 +52,9 @@ class MapLine : public MapObject {
     //virtual ObjectType type();
     //double x1, y1;
     //double x2, y2;
-    MapNode *p1, *p2;
-    MapWay *way;
+    MapNode *p1, *p2; // p1 -> p2
+    MapLine *prev, *next; // pointer to prev and next edge in way
+    MapWay *way; // pointer to way
     void set_line(MapNode *p1, MapNode *p2);
     void set_way(MapWay *way);
     MapRect get_rect();

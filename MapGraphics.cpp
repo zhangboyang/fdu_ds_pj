@@ -5,12 +5,38 @@
 #include "MapData.h"
 #include "MapGraphics.h"
 #include "MapRect.h"
+#include "MapGUI.h"
+#include "wstr.h"
 
 #include <algorithm>
 using namespace std;
 
 void MapGraphics::target(MapData *md) { MapGraphics::md = md; }
+void MapGraphics::target_gui(MapGUI *mgui) { MapGraphics::mgui = mgui; }
 
+// gui staff
+void MapGraphics::do_query_name()
+{
+    printf("INIT!\n");
+    mgui->prepare_inputbox();
+    mgui->set_inputbox_title(L"i am title");
+    mgui->set_inputbox_description(L"set_msgbox_description");
+    mgui->set_inputbox_text(L"text!");
+    std::wstring uinput = mgui->show_inputbox();
+    
+    printf("str=%s\n", ws2s(uinput).c_str());
+    
+    mgui->prepare_msgbox();
+    mgui->set_msgbox_title(s2ws("哈哈哈！"));
+    mgui->set_msgbox_description(L"set_msgbox_description");
+    mgui->set_msgbox_append(L"text!");
+    mgui->set_msgbox_append(uinput);
+    mgui->show_msgbox();
+    printf("FINISH!\n");
+}
+
+
+// graphics staff
 double MapGraphics::get_display_resolution()
 {
     return (md->maxy - md->miny) * pow(ZOOMSTEP, zoom_level);
@@ -96,10 +122,11 @@ void MapGraphics::map_operation(MapGraphicsOperation op)
         case DOWN: move_display_range(0, -1); break;
         case LEFT: move_display_range(-1, 0); break;
         case RIGHT: move_display_range(1, 0); break;
-        case ZOOMOUT: zoom_display_range(-1); break;
-        case ZOOMIN: zoom_display_range(1); break;
-        case RESETVIEW: reset_display_range(); break;
+        case ZOOM_OUT: zoom_display_range(-1); break;
+        case ZOOM_IN: zoom_display_range(1); break;
+        case RESET_VIEW: reset_display_range(); break;
         case TOGGLE_RTREE: show_rtree ^= 1; break;
+        case QUERY_NAME: do_query_name(); break;
         default: assert(0); break;
     }
 }
@@ -183,14 +210,16 @@ void MapGraphics::special_keyevent(int key, int x, int y)
 {
     MapGraphicsOperation op;
     switch (key) {
+        case GLUT_KEY_F1: op = RESET_VIEW; break;
         case GLUT_KEY_F2: op = TOGGLE_RTREE; break;
-        case GLUT_KEY_F1: op = RESETVIEW; break;
+        case GLUT_KEY_F3: op = QUERY_NAME; break;
+        
         case GLUT_KEY_UP: op = UP; break;
         case GLUT_KEY_DOWN: op = DOWN; break;
         case GLUT_KEY_LEFT: op = LEFT; break;
         case GLUT_KEY_RIGHT: op = RIGHT; break;
-        case GLUT_KEY_PAGE_UP: op = ZOOMOUT; break;
-        case GLUT_KEY_PAGE_DOWN: op = ZOOMIN; break;
+        case GLUT_KEY_PAGE_UP: op = ZOOM_OUT; break;
+        case GLUT_KEY_PAGE_DOWN: op = ZOOM_IN; break;
         default: printf("unknown key %d\n", key); return;
     }
     map_operation(op);
@@ -223,6 +252,7 @@ void special_keyevent_wrapper(int key, int x, int y) { assert(mgptr); mgptr->spe
 void MapGraphics::show(const char *title, int argc, char *argv[])
 {
     assert(md);
+    assert(mgui);
     assert(mgptr == NULL); // can't create MapGraphics twice
     mgptr = this;
     
