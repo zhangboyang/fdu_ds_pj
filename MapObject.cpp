@@ -2,6 +2,7 @@
 #include "common.h"
 #include "MapObject.h"
 #include "MapRect.h"
+#include "MapVector.h"
 
 #include <algorithm>
 using namespace std;
@@ -13,6 +14,7 @@ void MapObject::set_id(LL id) { MapObject::id = id; }
 
 /* MapNode */
 //MapObject::ObjectType MapNode::type() { return NODE; }
+MapPoint MapNode::get_point() { return MapPoint(x, y); }
 
 /* MapLine */
 void MapLine::set_line(MapNode *p1, MapNode *p2)

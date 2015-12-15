@@ -2,6 +2,7 @@
 #define ZBY_MAPOBJECT_H
 #include "common.h"
 #include "MapRect.h"
+#include "MapVector.h"
 
 #include <vector>
 #include <map>
@@ -32,6 +33,7 @@ class MapNode : public MapObject {
     double x, y;
     //double lat, lon;
     
+    MapPoint get_point();
     //virtual ObjectType type();
 };
 

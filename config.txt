@@ -1,5 +1,5 @@
 // map data
-MAPDATA=../data/shanghai_map.xml
+MAPDATA=../data/beijing.xml
 
 // title of main window
 TITLE=Zby's Map
@@ -7,6 +7,17 @@ TITLE=Zby's Map
 // objects with size >= 1/DISPLAY_FACTOR of current display level will be shown
 DISPLAY_FACTOR=20
 
+// graphics settings
+// SELECTED_COLOR: color of selected object (R|G|B)
+// SELECTED_POINT_RECT_SIZE: size of the rectangle of selected node
+
+INITIAL_WINDOW_HEIGHT=500
+MOVE_STEP=0.1
+ZOOM_STEP=0.8
+SELECTED_COLOR=1|0|1
+SELECTED_POINT_RECT_SIZE=30
+SELECTED_POINT_RECT_THICK=3
+SELECTED_WAY_THICK=3
 
 // total level count
 LEVEL_TOTAL=4
@@ -25,18 +36,18 @@ WAYTYPE_TOTAL=11
 //    tagname/tagvalue  : tag
 //    level : -1 means auto-detect, -2 means max-level
 //    r,g,b : from 0.0 to 1.0
-//    thick : not implemented
+//    thick : line width
 // type 0 is default drawing type
-//            tagname/tagvalue         |level|r  |g  |b  |thick
-WAYTYPE_TYPE0 =highway/default         |-1   |1.0|1.0|1.0|-1
-WAYTYPE_TYPE1 =highway/motorway        |3    |1.0|0  |0  |-1
-WAYTYPE_TYPE2 =highway/motorway_link   |2    |1.0|0  |0  |-1
-WAYTYPE_TYPE3 =highway/trunk           |3    |0  |1.0|0  |-1
-WAYTYPE_TYPE4 =highway/trunk_link      |2    |0  |1.0|0  |-1
-WAYTYPE_TYPE5 =highway/primary         |3    |0  |0  |1  |-1
-WAYTYPE_TYPE6 =highway/primary_link    |2    |0  |0  |1  |-1
-WAYTYPE_TYPE7 =highway/secondary       |2    |0  |1  |1  |-1
-WAYTYPE_TYPE8 =highway/secondary_link  |1    |0  |1  |1  |-1
-WAYTYPE_TYPE9 =highway/tertiary        |1    |1  |1  |0  |-1
-WAYTYPE_TYPE10=highway/tertiary_link   |1    |1  |1  |0  |-1
+//            tagname/tagvalue         |level|r   |g   |b   |thick
+WAYTYPE_TYPE0 =highway/default         |-1   |1   |1   |1   |1
+WAYTYPE_TYPE1 =highway/motorway        |3    |1   |0   |0   |2
+WAYTYPE_TYPE2 =highway/motorway_link   |2    |1   |0   |0   |1
+WAYTYPE_TYPE3 =highway/trunk           |3    |0   |1   |0   |2
+WAYTYPE_TYPE4 =highway/trunk_link      |2    |0   |1   |0   |1
+WAYTYPE_TYPE5 =highway/primary         |3    |0   |0   |1   |2
+WAYTYPE_TYPE6 =highway/primary_link    |2    |0   |0   |1   |1
+WAYTYPE_TYPE7 =highway/secondary       |2    |0   |1   |1   |1
+WAYTYPE_TYPE8 =highway/secondary_link  |1    |0   |1   |1   |1
+WAYTYPE_TYPE9 =highway/tertiary        |1    |1   |1   |0   |1
+WAYTYPE_TYPE10=highway/tertiary_link   |1    |1   |1   |0   |1
 

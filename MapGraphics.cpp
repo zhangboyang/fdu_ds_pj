@@ -7,15 +7,17 @@
 #include "MapRect.h"
 #include "MapGUI.h"
 #include "wstr.h"
+#include "MapVector.h"
 
 #include <algorithm>
+#include <set>
 using namespace std;
 
 void MapGraphics::target(MapData *md) { MapGraphics::md = md; }
 void MapGraphics::target_gui(MapGUI *mgui) { MapGraphics::mgui = mgui; }
 
 // gui staff
-void MapGraphics::do_query_name()
+void MapGraphics::query_name()
 {
     printf("INIT!\n");
     mgui->prepare_inputbox();
@@ -35,11 +37,61 @@ void MapGraphics::do_query_name()
     printf("FINISH!\n");
 }
 
+void MapGraphics::select_way()
+{
+    //printf("mx=%f my=%f\n", mx, my);
+    double cx, cy; // cursor, map coord
+    rtrans_gcoord(mx, my, &cx, &cy);
+    /*double mdist = -1;
+    MapPoint P(cx, cy);
+    for (vector<MapLine *>::iterator lit = dll.begin(); lit != dll.end(); lit++) {
+        MapLine *line = *lit;
+        MapPoint A(line->p1->x, line->p1->y), B(line->p2->x, line->p2->y);
+        double dist = dts(P, A, B); 
+        if (mdist < 0 || dist < mdist) { mdist = dist; sway = line->way; }
+    }*/
+
+    double mdist = F_INF;
+    MapPoint P(cx, cy);
+    for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
+        MapWay *way = *wit;
+        MapPoint A, B;
+        for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
+            MapNode *node = *nit;
+            B = node->get_point();
+            if (nit != way->nl.begin()) {
+                double dist = dts(P, A, B);
+                if (dist < mdist) { mdist = dist; sway = way; }
+            }
+            A = B;
+        }
+    }
+}
+
+
+void MapGraphics::select_point()
+{
+    double cx, cy; // cursor, map coord
+    rtrans_gcoord(mx, my, &cx, &cy);
+
+    double mdist = F_INF;
+    MapPoint P(cx, cy);
+    for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
+        MapWay *way = *wit;
+        MapPoint A, B;
+        for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
+            MapNode *node = *nit;
+            A = node->get_point();
+            double dist = len(A - P);
+            if (dist < mdist) { mdist = dist; snode = node; }
+        }
+    }
+}
 
 // graphics staff
 double MapGraphics::get_display_resolution()
 {
-    return (md->maxy - md->miny) * pow(ZOOMSTEP, zoom_level);
+    return (md->maxy - md->miny) * pow(zoom_step, zoom_level);
 }
 
 void MapGraphics::trans_gcoord(double x, double y, double *gx, double *gy)
@@ -72,12 +124,12 @@ void MapGraphics::move_display_range(int x, int y)
 {
     double mdiff = min(dmaxx - dminx, dmaxy - dminy);
     if (x != 0) {
-        double diffx = mdiff * MOVESTEP * x;
+        double diffx = mdiff * move_step * x;
         dmaxx += diffx;
         dminx += diffx;
     }
     if (y != 0) {
-        double diffy = mdiff * MOVESTEP * y;
+        double diffy = mdiff * move_step * y;
         dmaxy += diffy;
         dminy += diffy;
     }
@@ -85,11 +137,11 @@ void MapGraphics::move_display_range(int x, int y)
 
 void MapGraphics::zoom_display_range(int f)
 {
-    double diffx = (dmaxx - dminx) * (1 - pow(ZOOMSTEP, f));
+    double diffx = (dmaxx - dminx) * (1 - pow(zoom_step, f));
     dmaxx -= diffx / 2;
     dminx += diffx / 2;
     
-    double diffy = (dmaxy - dminy) * (1 - pow(ZOOMSTEP, f));
+    double diffy = (dmaxy - dminy) * (1 - pow(zoom_step, f));
     dmaxy -= diffy / 2;
     dminy += diffy / 2;
     
@@ -100,8 +152,8 @@ void MapGraphics::reset_display_range()
 {
     set_display_range(md->minx, md->maxx, md->miny, md->maxy);
     
-    double init_width = INITIAL_WINDOW_HEIGHT * md->map_ratio;
-    double init_height = INITIAL_WINDOW_HEIGHT;
+    double init_width = initial_window_height * md->map_ratio;
+    double init_height = initial_window_height;
     
     // do something like reshape()
     double old_diffx = dmaxx - dminx;
@@ -126,9 +178,12 @@ void MapGraphics::map_operation(MapGraphicsOperation op)
         case ZOOM_IN: zoom_display_range(1); break;
         case RESET_VIEW: reset_display_range(); break;
         case TOGGLE_RTREE: show_rtree ^= 1; break;
-        case QUERY_NAME: do_query_name(); break;
+        case QUERY_NAME: query_name(); break;
+        case SELECT_WAY: select_way(); break;
+        case SELECT_POINT: select_point(); break;
         default: assert(0); break;
     }
+    glutPostRedisplay();
 }
 
 static MapGraphics *mgptr = NULL;
@@ -149,20 +204,23 @@ void MapGraphics::redraw()
     rtrans_gcoord(dminx, dminy, &mminx, &mminy);
     rtrans_gcoord(dmaxx, dmaxy, &mmaxx, &mmaxy);
     
-    vector<MapLine *> result;
-    result.clear();
+    dll.clear();
     int lvl_low_limit = md->ml.select_level(get_display_resolution());
     printf("display level: %d\n", lvl_low_limit);
-    md->lrt[lvl_low_limit].find(result, MapRect(mminx, mmaxx, mminy, mmaxy));
-    printf("r-tree result count: %lld\n", (LL) result.size());
+    md->lrt[lvl_low_limit].find(dll, MapRect(mminx, mmaxx, mminy, mmaxy));
+    printf("r-tree result lines: %lld\n", (LL) dll.size());
+
+    // draw r-tree rectangles
 
     if (show_rtree) {
         vector<MapRect> rtree_rects;
         md->lrt[lvl_low_limit].get_all_tree_rect(rtree_rects);
         printf("rect count = %lld\n", (LL) rtree_rects.size());
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glLineWidth(1.0f);
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glBegin(GL_QUADS);
         for (vector<MapRect>::iterator rit = rtree_rects.begin(); rit != rtree_rects.end(); rit++) {
-            glBegin(GL_LINE_LOOP);
-            glColor3f(0.0f, 1.0f, 0.0f);
             MapRect &rect = *rit;
             trans_gcoord(rect.left, rect.bottom, &rect.left, &rect.bottom);
             trans_gcoord(rect.right, rect.top, &rect.right, &rect.top);
@@ -170,29 +228,41 @@ void MapGraphics::redraw()
             glVertex2d(rect.right, rect.bottom);
             glVertex2d(rect.right, rect.top);
             glVertex2d(rect.left, rect.top);
-            glEnd();
         }
+        glEnd();
     }
-    
-    
-    vector<MapWay *> dwl;
-    for (vector<MapLine *>::iterator lit = result.begin(); lit != result.end(); lit++)
-        dwl.push_back((*lit)->way);
 
+    
+    
+    
+    
+    dwl.clear();
+    for (vector<MapLine *>::iterator lit = dll.begin(); lit != dll.end(); lit++)
+        dwl.push_back((*lit)->way);
     sort(dwl.begin(), dwl.end());
     dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
+    
+    /*dwl.clear();
+    set<MapWay *> wayset;
+    for (vector<MapLine *>::iterator lit = dll.begin(); lit != dll.end(); lit++) {
+        MapWay *way = (*lit)->way;
+        if (wayset.insert(way).second) dwl.push_back(way);
+    }*/
     printf("need to draw %lld ways\n", (LL) dwl.size());
-//    sort(dwl.begin(), dwl.end(), MapWay::compare_by_waytype);
     
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
-        //if (wit - md->wl.begin() >= x) { x++; break; }
-        //printf("drawing %lld\n", (*wit)->id);
-        glBegin(GL_LINE_STRIP);
         MapWay *way = *wit;
-        float r, g, b;
-        md->wt.query_rgb(way->waytype, &r, &g, &b);
-        glColor3f(r, g, b);
+        float r, g, b, thickness;
+        md->wt.query_rgbt(way->waytype, &r, &g, &b, &thickness);
         
+        if (way == sway) {
+            glColor3f(scolor[0], scolor[1], scolor[2]);
+            glLineWidth(selected_way_thick);
+        } else {
+            glColor3f(r, g, b);
+            glLineWidth(thickness);
+        }
+        glBegin(GL_LINE_STRIP);
         for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
             MapNode *node = *nit;
             double gx, gy;
@@ -202,6 +272,19 @@ void MapGraphics::redraw()
         glEnd();
     }
     
+    if (snode) {
+        double gx, gy;
+        trans_gcoord(snode->x, snode->y, &gx, &gy);
+        double diff = selected_point_rect_size / 2.0 * (dmaxx - dminx) / window_width;
+        glColor3f(scolor[0], scolor[1], scolor[2]);
+        glLineWidth(selected_point_rect_thick);
+        glBegin(GL_LINE_LOOP);
+        glVertex2d(gx - diff, gy - diff);
+        glVertex2d(gx - diff, gy + diff);
+        glVertex2d(gx + diff, gy + diff);
+        glVertex2d(gx + diff, gy - diff);
+        glEnd();
+    }
     
     glFlush();
 }
@@ -213,7 +296,6 @@ void MapGraphics::special_keyevent(int key, int x, int y)
         case GLUT_KEY_F1: op = RESET_VIEW; break;
         case GLUT_KEY_F2: op = TOGGLE_RTREE; break;
         case GLUT_KEY_F3: op = QUERY_NAME; break;
-        
         case GLUT_KEY_UP: op = UP; break;
         case GLUT_KEY_DOWN: op = DOWN; break;
         case GLUT_KEY_LEFT: op = LEFT; break;
@@ -223,8 +305,34 @@ void MapGraphics::special_keyevent(int key, int x, int y)
         default: printf("unknown key %d\n", key); return;
     }
     map_operation(op);
-    glutPostRedisplay();
 }
+
+void MapGraphics::set_mouse_coord(int x, int y)
+{
+    mx = dminx + ((double) x / window_width) * (dmaxx - dminx);
+    my = dminy + ((double) (window_height - y) / window_height) * (dmaxy - dminy);
+}
+
+void MapGraphics::mouse_event(bool use_last_op, int button, int state, int x, int y)
+{
+    MapGraphicsOperation op;
+    if (use_last_op) {
+        op = last_mouse_op;
+    } else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
+        op = SELECT_WAY;
+    } else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        op = SELECT_POINT;
+    } else {
+        printf("unknown mouse event %d %d\n", button, state);
+        return;
+    }
+    last_mouse_op = op;
+    set_mouse_coord(x, y);
+    map_operation(op);
+}
+
+void MapGraphics::mouseupdown(int button, int state, int x, int y) { mouse_event(false, button, state, x, y); }
+void MapGraphics::mousemotion(int x, int y) { mouse_event(true, -1, -1, x, y); }
 
 void MapGraphics::reshape(int width, int height)
 {
@@ -245,9 +353,11 @@ void MapGraphics::reshape(int width, int height)
 }
 
 //void redraw_wrapper() { assert(mgptr); mgptr->redraw(); }
-void redraw_wrapper() { assert(mgptr); TIMING("redraw", { mgptr->redraw(); }) }
-void reshape_wrapper(int width, int height) { assert(mgptr); mgptr->reshape(width, height); }
-void special_keyevent_wrapper(int key, int x, int y) { assert(mgptr); mgptr->special_keyevent(key, x, y); }
+static void redraw_wrapper() { assert(mgptr); TIMING("redraw", { mgptr->redraw(); }) }
+static void reshape_wrapper(int width, int height) { assert(mgptr); mgptr->reshape(width, height); }
+static void special_keyevent_wrapper(int key, int x, int y) { assert(mgptr); mgptr->special_keyevent(key, x, y); }
+static void mouseupdown_wrapper(int button, int state, int x, int y) { assert(mgptr); mgptr->mouseupdown(button, state, x, y); }
+static void mousemotion_wrapper(int x, int y) { assert(mgptr); mgptr->mousemotion(x, y); }
 
 void MapGraphics::show(const char *title, int argc, char *argv[])
 {
@@ -257,8 +367,8 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     mgptr = this;
     
     show_rtree = 0;
-    window_width = INITIAL_WINDOW_HEIGHT * md->map_ratio;
-    window_height = INITIAL_WINDOW_HEIGHT;
+    window_width = initial_window_height * md->map_ratio;
+    window_height = initial_window_height;
     reset_display_range();
     
     /* glut things */
@@ -268,6 +378,8 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     glutCreateWindow(title);
     
     glutSpecialFunc(special_keyevent_wrapper);
+    glutMouseFunc(mouseupdown_wrapper);
+    glutMotionFunc(mousemotion_wrapper);
     glutDisplayFunc(redraw_wrapper);
     glutReshapeFunc(reshape_wrapper);
     //glutIdleFunc(redraw_wrapper);

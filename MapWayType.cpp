@@ -6,7 +6,7 @@ void MapWayType::insert(const char *str)
 {
     // way type defination: name|level|r|g|b|thick
     waytype_t t;
-    int ret = sscanf(str, "%*[^| ] | %d | %f | %f | %f | %f", &t.level, &t.r, &t.g, &t.b, &t.thick);
+    int ret = sscanf(str, "%*[^| ] | %d | %f | %f | %f | %f", &t.level, &t.r, &t.g, &t.b, &t.thickness);
     if (ret != 5) fail("can't parse '%s' to waytype, ret = %d", str, ret);
     int id = data.size();
     data.push_back(t);
@@ -27,6 +27,12 @@ int MapWayType::query_id(const std::string &name)
 }
 
 int MapWayType::query_level(int id) { assert(data.size() > 0); return data[id].level; }
-void MapWayType::query_rgb(int id, float *r, float *g, float *b) { assert(data.size() > 0); *r = data[id].r; *g = data[id].g; *b = data[id].b; }
-float MapWayType::query_thick(int id) { assert(data.size() > 0); return data[id].thick; }
+void MapWayType::query_rgbt(int id, float *r, float *g, float *b, float *thickness)
+{
+    assert(data.size() > 0);
+    *r = data[id].r;
+    *g = data[id].g;
+    *b = data[id].b;
+    *thickness = data[id].thickness;
+}
 

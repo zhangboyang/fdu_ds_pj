@@ -54,6 +54,17 @@ int main(int argc, char *argv[])
     
     //HeapProfilerStop();
     
+    
+    // load graphics configurations
+    mg.initial_window_height = str2double(cfgp.query("INITIAL_WINDOW_HEIGHT"));
+    mg.move_step = str2double(cfgp.query("MOVE_STEP"));
+    mg.zoom_step = str2double(cfgp.query("ZOOM_STEP"));
+    if (sscanf(cfgp.query("SELECTED_COLOR"), "%f | %f | %f",
+                 &mg.scolor[0], &mg.scolor[1], &mg.scolor[2]) != 3)
+        fail("can't parse scolor");
+    mg.selected_point_rect_size = str2double(cfgp.query("SELECTED_POINT_RECT_SIZE"));
+    mg.selected_point_rect_thick = str2double(cfgp.query("SELECTED_POINT_RECT_THICK"));
+    mg.selected_way_thick = str2double(cfgp.query("SELECTED_WAY_THICK"));
     mg.target(&md);
     mg.target_gui(&mgui);
     mg.show(cfgp.query("TITLE"), argc, argv); // ui loop, never return
