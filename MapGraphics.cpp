@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <GL/glut.h>
 #include "common.h"
 #include "MapData.h"
@@ -11,6 +12,7 @@
 
 #include <algorithm>
 #include <set>
+
 using namespace std;
 
 void MapGraphics::target(MapData *md) { MapGraphics::md = md; }
@@ -35,6 +37,13 @@ void MapGraphics::query_name()
     mgui->set_msgbox_append(uinput);
     mgui->show_msgbox();
     printf("FINISH!\n");
+}
+
+void MapGraphics::clear_select()
+{
+    snode = NULL;
+    sway = NULL;
+    memset(nnode, 0, sizeof(nnode));
 }
 
 void MapGraphics::select_way()
@@ -85,6 +94,25 @@ void MapGraphics::select_point()
             double dist = len(A - P);
             if (dist < mdist) { mdist = dist; snode = node; }
         }
+    }
+}
+
+void MapGraphics::number_point()
+{
+    int val = kbd_char - '0';
+    for (int num = 0; num <= 9; num++)
+        if (nnode[num] == snode)
+            return;
+    nnode[val] = snode;
+}
+
+void MapGraphics::center_point()
+{
+    MapNode *node = nnode[(int) (kbd_char - '0')];
+    if (node) {
+        double gx, gy;
+        trans_gcoord(node->x, node->y, &gx, &gy);
+        move_display_to_point(gx, gy);
     }
 }
 
@@ -148,6 +176,17 @@ void MapGraphics::zoom_display_range(int f)
     zoom_level += f;
 }
 
+void MapGraphics::move_display_to_point(double gx, double gy)
+{
+    double diffx = (dmaxx - dminx);
+    dmaxx = gx + diffx / 2;
+    dminx = gx - diffx / 2;
+    
+    double diffy = (dmaxy - dminy);
+    dmaxy = gy + diffy / 2;
+    dminy = gy - diffy / 2;
+}
+
 void MapGraphics::reset_display_range()
 {
     set_display_range(md->minx, md->maxx, md->miny, md->maxy);
@@ -181,12 +220,31 @@ void MapGraphics::map_operation(MapGraphicsOperation op)
         case QUERY_NAME: query_name(); break;
         case SELECT_WAY: select_way(); break;
         case SELECT_POINT: select_point(); break;
+        case NUMBER_POINT: number_point(); break;
+        case CLEAR_SELECT: clear_select(); break;
+        case CENTER_POINT: center_point(); break;
         default: assert(0); break;
     }
     glutPostRedisplay();
 }
 
 static MapGraphics *mgptr = NULL;
+
+
+void MapGraphics::highlight_point(MapNode *node, float color[], float thick)
+{
+    double gx, gy;
+    trans_gcoord(node->x, node->y, &gx, &gy);
+    double diff = selected_point_rect_size / 2.0 * (dmaxx - dminx) / window_width;
+    glColor3f(color[0], color[1], color[2]);
+    glLineWidth(thick);
+    glBegin(GL_LINE_LOOP);
+    glVertex2d(gx - diff, gy - diff);
+    glVertex2d(gx - diff, gy + diff);
+    glVertex2d(gx + diff, gy + diff);
+    glVertex2d(gx + diff, gy - diff);
+    glEnd();
+}
 
 void MapGraphics::redraw()
 {
@@ -272,19 +330,16 @@ void MapGraphics::redraw()
         glEnd();
     }
     
-    if (snode) {
-        double gx, gy;
-        trans_gcoord(snode->x, snode->y, &gx, &gy);
-        double diff = selected_point_rect_size / 2.0 * (dmaxx - dminx) / window_width;
-        glColor3f(scolor[0], scolor[1], scolor[2]);
-        glLineWidth(selected_point_rect_thick);
-        glBegin(GL_LINE_LOOP);
-        glVertex2d(gx - diff, gy - diff);
-        glVertex2d(gx - diff, gy + diff);
-        glVertex2d(gx + diff, gy + diff);
-        glVertex2d(gx + diff, gy - diff);
-        glEnd();
+    bool snode_flag = false;
+    for (int num = 0; num <= 9; num++) {
+        MapNode *node = nnode[num];
+        if (node) {
+            highlight_point(node, ncolor[num], selected_point_rect_thick);
+            if (node == snode) snode_flag = true;
+        }
     }
+    if (snode && !snode_flag)
+        highlight_point(snode, scolor, selected_point_rect_thick);
     
     glFlush();
 }
@@ -296,6 +351,7 @@ void MapGraphics::special_keyevent(int key, int x, int y)
         case GLUT_KEY_F1: op = RESET_VIEW; break;
         case GLUT_KEY_F2: op = TOGGLE_RTREE; break;
         case GLUT_KEY_F3: op = QUERY_NAME; break;
+        case GLUT_KEY_F4: op = CLEAR_SELECT; break;
         case GLUT_KEY_UP: op = UP; break;
         case GLUT_KEY_DOWN: op = DOWN; break;
         case GLUT_KEY_LEFT: op = LEFT; break;
@@ -303,6 +359,41 @@ void MapGraphics::special_keyevent(int key, int x, int y)
         case GLUT_KEY_PAGE_UP: op = ZOOM_OUT; break;
         case GLUT_KEY_PAGE_DOWN: op = ZOOM_IN; break;
         default: printf("unknown key %d\n", key); return;
+    }
+    map_operation(op);
+}
+
+void MapGraphics::keyevent(unsigned char key, int x, int y)
+{
+    MapGraphicsOperation op;
+    kbd_char = key;
+    if (isupper(kbd_char)) kbd_char = kbd_char - 'A' + 'a';
+    int shift = 0;
+    switch (kbd_char) { // convert SHIFT+NUM to NUM
+        case '!': kbd_char = '1'; shift = 1; break;
+        case '@': kbd_char = '2'; shift = 1; break;
+        case '#': kbd_char = '3'; shift = 1; break;
+        case '$': kbd_char = '4'; shift = 1; break;
+        case '%': kbd_char = '5'; shift = 1; break;
+        case '^': kbd_char = '6'; shift = 1; break;
+        case '&': kbd_char = '7'; shift = 1; break;
+        case '*': kbd_char = '8'; shift = 1; break;
+        case '(': kbd_char = '9'; shift = 1; break;
+        case ')': kbd_char = '0'; shift = 1; break;
+    }
+    if (isdigit(kbd_char)) {
+        if (shift)
+            op = NUMBER_POINT;
+        else
+            op = CENTER_POINT;
+    } else switch (kbd_char) {
+        case '-': case '_' : op = ZOOM_OUT; break;
+        case '+': case '=' : op = ZOOM_IN; break;
+        case 'w': op = UP; break;
+        case 's': op = DOWN; break;
+        case 'a': op = LEFT; break;
+        case 'd': op = RIGHT; break;
+        default: printf("unknown key %c\n", key); return;
     }
     map_operation(op);
 }
@@ -356,6 +447,7 @@ void MapGraphics::reshape(int width, int height)
 static void redraw_wrapper() { assert(mgptr); TIMING("redraw", { mgptr->redraw(); }) }
 static void reshape_wrapper(int width, int height) { assert(mgptr); mgptr->reshape(width, height); }
 static void special_keyevent_wrapper(int key, int x, int y) { assert(mgptr); mgptr->special_keyevent(key, x, y); }
+static void keyevent_wrapper(unsigned char key, int x, int y) { assert(mgptr); mgptr->keyevent(key, x, y); }
 static void mouseupdown_wrapper(int button, int state, int x, int y) { assert(mgptr); mgptr->mouseupdown(button, state, x, y); }
 static void mousemotion_wrapper(int x, int y) { assert(mgptr); mgptr->mousemotion(x, y); }
 
@@ -367,6 +459,7 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     mgptr = this;
     
     show_rtree = 0;
+    clear_select();    
     window_width = initial_window_height * md->map_ratio;
     window_height = initial_window_height;
     reset_display_range();
@@ -378,6 +471,7 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     glutCreateWindow(title);
     
     glutSpecialFunc(special_keyevent_wrapper);
+    glutKeyboardFunc(keyevent_wrapper);
     glutMouseFunc(mouseupdown_wrapper);
     glutMotionFunc(mousemotion_wrapper);
     glutDisplayFunc(redraw_wrapper);

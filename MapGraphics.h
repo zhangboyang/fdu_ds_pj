@@ -15,16 +15,21 @@ class MapGraphics {
         QUERY_NAME,
         SELECT_WAY,
         SELECT_POINT,
+        NUMBER_POINT, // assign a number to currently selected point
+        CLEAR_SELECT,
+        CENTER_POINT, // center a previously numbered point
     };
     
     std::vector<MapLine *> dll; // draw line list
     std::vector<MapWay *> dwl; // draw way list
     MapNode *snode; // selected node
+    MapNode *nnode[10]; // numbered node
     //MapLine *sline; // selected line
     MapWay *sway; // selected way
     
     double mx, my; // mouse x, mouse y
     MapGraphicsOperation last_mouse_op;
+    char kbd_char;
     
     double dminx, dmaxx, dminy, dmaxy;
     int window_width, window_height;
@@ -36,7 +41,11 @@ class MapGraphics {
     
     void select_way();
     void select_point();
+    void number_point();
+    void clear_select();
+    void center_point();
     void query_name();
+    
     
     // all coord in MapGraphics is transformed by trans_gcoord()
     void trans_gcoord(double x, double y, double *gx, double *gy);
@@ -47,14 +56,19 @@ class MapGraphics {
     void set_display_range(double dminx, double dmaxx, double dminy, double dmaxy);
     void move_display_range(int x, int y);
     void zoom_display_range(int f);
+    void move_display_to_point(double gx, double gy);
     void reset_display_range();
     void map_operation(MapGraphicsOperation op);
     
     void set_mouse_coord(int x, int y);
     void mouse_event(bool use_last_op, int button, int state, int x, int y);
     
+    void highlight_point(MapNode *node, float color[], float thick);
+    
     public:
     float scolor[3]; // selected color, R, G, B, from 0 to 1
+    float ncolor[10][3]; // numbered color
+    
     int selected_point_rect_size;
     float selected_point_rect_thick;
     float selected_way_thick;
@@ -70,6 +84,7 @@ class MapGraphics {
     void redraw();
     void reshape(int width, int height);
     void special_keyevent(int key, int x, int y);
+    void keyevent(unsigned char key, int x, int y);
     void mouseupdown(int button, int state, int x, int y);
     void mousemotion(int x, int y);
     void show(const char *title, int argc, char *argv[]);

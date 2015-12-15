@@ -6,7 +6,7 @@
 gmon.out
 
 # google pprof
-*.heap
+pj_*
 
 # exec file
 pj

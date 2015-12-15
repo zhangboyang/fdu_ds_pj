@@ -8,7 +8,8 @@
 #include "str2type.h"
 #include "wstr.h"
 
-//#include <google/heap-profiler.h>
+#include <google/profiler.h>
+#include <google/heap-profiler.h>
 
 static ConfigFilePraser cfgp;
 static MapData md;
@@ -21,7 +22,7 @@ int main(int argc, char *argv[])
     setlocale(LC_ALL, "zh_CN.UTF-8");
     
     //int test(); test(); return 0;
-    //HeapProfilerStart("pj_hp");
+    //HeapProfilerStart("pj_heap");
     cfgp.load("config.txt");
     // load level configurations
     int tot_lvl;
@@ -65,8 +66,19 @@ int main(int argc, char *argv[])
     mg.selected_point_rect_size = str2double(cfgp.query("SELECTED_POINT_RECT_SIZE"));
     mg.selected_point_rect_thick = str2double(cfgp.query("SELECTED_POINT_RECT_THICK"));
     mg.selected_way_thick = str2double(cfgp.query("SELECTED_WAY_THICK"));
+    
+    for (int num = 0; num <= 9; num++) {
+        char buf[MAXLINE];
+        sprintf(buf, "SELECTED_COLOR_NUM%d", num);
+        if (sscanf(cfgp.query(buf), "%f | %f | %f",
+                 &mg.ncolor[num][0], &mg.ncolor[num][1], &mg.ncolor[num][2]) != 3)
+            fail("can't parse %s", buf);
+    }
+    
     mg.target(&md);
     mg.target_gui(&mgui);
+    
+    ProfilerStart("pj_cpu");
     mg.show(cfgp.query("TITLE"), argc, argv); // ui loop, never return
     
     assert(0);
