@@ -15,6 +15,11 @@ void MapObject::set_id(LL id) { MapObject::id = id; }
 /* MapNode */
 //MapObject::ObjectType MapNode::type() { return NODE; }
 //MapPoint MapNode::get_point() { return MapPoint(x, y); }
+MapNode::~MapNode()
+{
+    for (std::map<std::string, const wchar_t *>::iterator it = names.begin(); it != names.end(); it++)
+        delete[] it->second;
+}
 
 /* MapLine */
 void MapLine::set_line(MapNode *p1, MapNode *p2)
@@ -41,7 +46,12 @@ MapRect MapLine::get_rect()
 void MapWay::add_node(MapNode *node) { nl.push_back(node); }
 //bool MapWay::compare_by_waytype(MapWay *a, MapWay *b) { return a->waytype == 0 && a->waytype > b->waytype; }
 //void MapWay::set_level(int level) { MapWay::level = level; }
-
+MapWay::~MapWay()
+{
+    for (std::map<std::string, const wchar_t *>::iterator it = names.begin(); it != names.end(); it++)
+        delete[] it->second;
+}
+ 
 /* MapRelation */
 //MapObject::ObjectType MapRelation::type() { return RELATION; }
 // FIXME: 'relation' not implemented

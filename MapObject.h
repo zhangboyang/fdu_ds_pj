@@ -4,6 +4,7 @@
 #include "MapRect.h"
 //#include "MapVector.h"
 
+#include <string>
 #include <vector>
 #include <map>
 
@@ -31,10 +32,12 @@ class MapObject {
 class MapNode : public MapObject {
     public:
     double x, y;
-    //double lat, lon;
+    double lat, lon;
     
+    std::map<std::string, const wchar_t *> names;
     //MapPoint get_point();
     //virtual ObjectType type();
+    ~MapNode();
 };
 
 class MapWay : public MapObject {
@@ -44,9 +47,11 @@ class MapWay : public MapObject {
     int waytype;
     std::vector<MapNode *> nl; // nl: node list
     
+    std::map<std::string, const wchar_t *> names;
     //static bool compare_by_waytype(MapWay *a, MapWay *b); // useful when sorting ways
     void add_node(MapNode *node);
     //void set_level(int level);
+    ~MapWay();
 };
 
 class MapLine : public MapObject {

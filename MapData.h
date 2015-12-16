@@ -5,8 +5,11 @@
 #include "MapRTree.h"
 #include "MapLevel.h"
 #include "MapWayType.h"
+#include "MapDict.h"
 #include <vector>
 #include <map>
+
+const double dist_factor = 4.0009e7 / 360; // from lat to meters
 
 class MapData {
     private:
@@ -24,6 +27,9 @@ class MapData {
     void insert(MapLine *line);
     
     public:
+    MapDict<MapWay *> wd; // dict of ways
+    MapDict<MapNode *> nd; // dict of nodes
+    
     MapLevel ml;
     MapWayType wt;
     int dfactor; // display factor

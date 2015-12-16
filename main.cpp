@@ -53,7 +53,6 @@ int main(int argc, char *argv[])
     md.construct();
     md.print_stat();
     
-    //HeapProfilerStop();
     
     
     // load graphics configurations
@@ -77,7 +76,7 @@ int main(int argc, char *argv[])
     
     mg.target(&md);
     mg.target_gui(&mgui);
-    
+    //HeapProfilerStop();
     ProfilerStart("pj_cpu");
     mg.show(cfgp.query("TITLE"), argc, argv); // ui loop, never return
     

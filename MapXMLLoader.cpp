@@ -3,6 +3,7 @@
 #include "common.h"
 #include "MapXMLLoader.h"
 #include "str2type.h"
+#include "wstr.h"
 
 /* use libxml2 to read data */
 
@@ -85,11 +86,30 @@ void MapXMLLoader::process_node()
                 get_string_attr("v", buf, sizeof(buf));
                 t += buf;
                 mway_ptr->waytype = md->wt.query_id(t);
+            } else if (strncmp(get_string_attr("k", buf, sizeof(buf)), "name", 4) == 0) {
+                std::string keystr(buf);
+                get_string_attr("v", buf, sizeof(buf));
+                wchar_t *wstr = cs2wcs(buf); // alloc memory and convert
+                mway_ptr->names.insert(std::make_pair(keystr, wstr));
+                md->wd.insert(wstr, mway_ptr);
             }
         }
         return;
     }
-    
+    if (mnode_ptr && deepth == 2) {
+        // process node names
+        if (strcmp(name, "tag") == 0) {
+            char buf[MAXLINE];
+            if (strncmp(get_string_attr("k", buf, sizeof(buf)), "name", 4) == 0) {
+                std::string keystr(buf);
+                get_string_attr("v", buf, sizeof(buf));
+                wchar_t *wstr = cs2wcs(buf); // alloc memory and convert
+                mnode_ptr->names.insert(std::make_pair(keystr, wstr));
+                md->nd.insert(wstr, mnode_ptr);
+            }
+        }
+        return;
+    }
     if (deepth != 1) return;
     
     mway_ptr = NULL; // reset temp ptr
@@ -100,6 +120,7 @@ void MapXMLLoader::process_node()
         md->set_node_coord_by_geo(mnode, get_double_attr("lat"),
                                          get_double_attr("lon"));
         md->insert(mnode);
+        mnode_ptr = mnode; // process node later
     } else if (strcmp(name, "way") == 0) {
         LL id = get_LL_attr("id");
         MapWay *mway = new MapWay;
@@ -136,6 +157,7 @@ void MapXMLLoader::load(const char *fn)
         rdr = xmlReaderForFile(fn, NULL, 0);
         if (!rdr) fail("can't load '%s'", fn);
         mway_ptr = NULL; // reset temp ptr for process_node()
+        mnode_ptr = NULL;
         int ret;
         ret = xmlTextReaderRead(rdr);
         while (ret == 1) {

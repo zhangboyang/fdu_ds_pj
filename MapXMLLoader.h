@@ -9,6 +9,7 @@ class MapXMLLoader {
     private:
     xmlTextReaderPtr rdr;
     MapWay *mway_ptr; // temp pointer used by process_node()
+    MapNode *mnode_ptr;
     
     void print_current_node();
     LL get_LL_attr(const char *aname);

@@ -25,7 +25,7 @@ inline static double distsq_p2s(const MapPoint &p, const MapPoint &a, const MapP
     MapVector v1 = b - a, v2 = p - a, v3 = p - b;
     if (dot(v1, v2) < 0) return lensq(v2);
     else if (dot(v1, v3) > 0) return lensq(v3);
-    else return fabs(det(v1, v2)) / lensq(v1);
+    else return sq(det(v1, v2)) / lensq(v1);
 }
 
 inline static double dist_p2s(const MapPoint &p, const MapPoint &a, const MapPoint &b) { return sqrt(distsq_p2s(p, a, b)); }

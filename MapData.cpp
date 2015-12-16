@@ -62,8 +62,8 @@ void MapData::trans_coord(double lat, double lon, double *x, double *y)
 
 void MapData::set_node_coord_by_geo(MapNode *node, double lat, double lon)
 {
-    //node->lat = lat;
-    //node->lon = lon;
+    node->lat = lat;
+    node->lon = lon;
     trans_coord(lat, lon, &node->x, &node->y);
 }
 

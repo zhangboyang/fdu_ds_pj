@@ -39,6 +39,82 @@ void MapGraphics::query_name()
     printf("FINISH!\n");
 }
 
+void MapGraphics::show_wayinfo()
+{
+    if (sway) {
+        char buf[MAXLINE];
+        mgui->prepare_msgbox();
+        mgui->set_msgbox_title(s2ws("Way Information"));
+        sprintf(buf, "Here is information about way %lld", sway->id);
+        mgui->set_msgbox_description(s2ws(std::string(buf)));
+        
+        // way names
+        for (std::map<std::string, const wchar_t *>::iterator it = sway->names.begin(); it != sway->names.end(); it++) {
+            mgui->set_msgbox_append(L"[" + s2ws(it->first) + L"] " + std::wstring(it->second));
+        }
+        
+        // way length
+        double way_length = 0;
+        MapPoint A, B;
+        for (std::vector<MapNode *>::iterator it = sway->nl.begin(); it != sway->nl.end(); it++) {
+            MapNode *node = *it;
+            B = MapPoint(node->x, node->y);
+            if (it != sway->nl.begin()) {
+                way_length += len(B - A);
+            }
+            A = B;
+        }
+        way_length *= dist_factor;
+        if (way_length >= 1e3)
+            sprintf(buf, "[length] %.2f km", way_length * 1e-3);
+        else
+            sprintf(buf, "[length] %.2f m", way_length);
+        mgui->set_msgbox_append(s2ws(std::string(buf)));
+        
+        // way area
+        if (!sway->nl.empty() && sway->nl.front() == sway->nl.back()) {
+            double way_area = 0;
+            MapPoint P(sway->nl.front()->x, sway->nl.front()->y);
+            MapPoint A(P), B;
+            for (std::vector<MapNode *>::iterator it = ++sway->nl.begin(); it != sway->nl.end(); it++) {
+                MapNode *node = *it;
+                B = MapPoint(node->x, node->y);
+                way_area += det(B - A, B - P);
+                A = B;
+            }
+            way_area = fabs(way_area * sq(dist_factor) / 2);
+            if (way_area >= 1e4)
+                sprintf(buf, "[area] %.2f km2", way_area * 1e-6);
+            else
+                sprintf(buf, "[area] %.2f m2", way_area);
+            mgui->set_msgbox_append(s2ws(std::string(buf)));
+        }
+        mgui->show_msgbox();
+    }
+}
+
+void MapGraphics::show_nodeinfo()
+{
+    if (snode) {
+        char buf[MAXLINE];
+        mgui->prepare_msgbox();
+        mgui->set_msgbox_title(s2ws("Node Information"));
+        sprintf(buf, "Here is information about node %lld", snode->id);
+        mgui->set_msgbox_description(s2ws(std::string(buf)));
+        
+        // node names
+        for (std::map<std::string, const wchar_t *>::iterator it = snode->names.begin(); it != snode->names.end(); it++) {
+            mgui->set_msgbox_append(L"[" + s2ws(it->first) + L"] " + std::wstring(it->second));
+        }
+        
+        // node coord
+        sprintf(buf, "[coord] lat=%f lon=%f", snode->lat, snode->lon);
+        mgui->set_msgbox_append(s2ws(std::string(buf)));
+        
+        mgui->show_msgbox();
+    }
+}
+
 void MapGraphics::clear_select()
 {
     snode = NULL;
@@ -220,6 +296,8 @@ void MapGraphics::map_operation(MapGraphicsOperation op)
         case NUMBER_POINT: number_point(); break;
         case CLEAR_SELECT: clear_select(); break;
         case CENTER_POINT: center_point(); break;
+        case SHOW_NODEINFO: show_nodeinfo(); break;
+        case SHOW_WAYINFO: show_wayinfo(); break;
         default: assert(0); break;
     }
     glutPostRedisplay();
@@ -235,11 +313,15 @@ void MapGraphics::highlight_point(MapNode *node, float color[], float thick)
     double diff = selected_point_rect_size / 2.0 * (dmaxx - dminx) / window_width;
     glColor3f(color[0], color[1], color[2]);
     glLineWidth(thick);
+    glPointSize(thick);
     glBegin(GL_LINE_LOOP);
     glVertex2d(gx - diff, gy - diff);
     glVertex2d(gx - diff, gy + diff);
     glVertex2d(gx + diff, gy + diff);
     glVertex2d(gx + diff, gy - diff);
+    glEnd();
+    glBegin(GL_POINTS);
+    glVertex2d(gx, gy);
     glEnd();
 }
 
@@ -349,6 +431,8 @@ void MapGraphics::special_keyevent(int key, int x, int y)
         case GLUT_KEY_F2: op = TOGGLE_RTREE; break;
         case GLUT_KEY_F3: op = QUERY_NAME; break;
         case GLUT_KEY_F4: op = CLEAR_SELECT; break;
+        case GLUT_KEY_F11: op = SHOW_NODEINFO; break;
+        case GLUT_KEY_F12: op = SHOW_WAYINFO; break;
         case GLUT_KEY_UP: op = UP; break;
         case GLUT_KEY_DOWN: op = DOWN; break;
         case GLUT_KEY_LEFT: op = LEFT; break;

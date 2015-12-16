@@ -18,6 +18,8 @@ class MapGraphics {
         NUMBER_POINT, // assign a number to currently selected point
         CLEAR_SELECT,
         CENTER_POINT, // center a previously numbered point
+        SHOW_WAYINFO,
+        SHOW_NODEINFO,
     };
     
     std::vector<MapLine *> dll; // draw line list
@@ -45,6 +47,8 @@ class MapGraphics {
     void clear_select();
     void center_point();
     void query_name();
+    void show_wayinfo();
+    void show_nodeinfo();
     
     
     // all coord in MapGraphics is transformed by trans_gcoord()
