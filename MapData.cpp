@@ -2,6 +2,7 @@
 #include <cmath>
 #include "common.h"
 #include "MapData.h"
+#include "MapVector.h"
 
 #include <utility>
 #include <algorithm>
@@ -13,8 +14,9 @@ MapData::~MapData()
     printd("destructing mapdata object %p\n", this);
     for (std::vector<MapNode *>::iterator it = nl.begin(); it != nl.end(); it++)
         delete *it;
-    for (std::vector<MapLine *>::iterator it = ll.begin(); it != ll.end(); it++)
-        delete *it;
+    for (int lvl = 0; lvl < tot_lvl; lvl++)
+        for (std::vector<MapLine *>::iterator it = ll[lvl].begin(); it != ll[lvl].end(); it++)
+            delete *it;
     for (std::vector<MapWay *>::iterator it = wl.begin(); it != wl.end(); it++)
         delete *it;
     for (std::vector<MapRelation *>::iterator it = rl.begin(); it != rl.end(); it++)
@@ -23,7 +25,6 @@ MapData::~MapData()
 }
 
 void MapData::insert(MapNode *node) { nl.push_back(node); nm.insert(make_pair(node->id, node)); }
-void MapData::insert(MapLine *line) { ll.push_back(line); }
 void MapData::insert(MapWay *way) { wl.push_back(way); wm.insert(make_pair(way->id, way)); }
 void MapData::insert(MapRelation *rela) { rl.push_back(rela); rm.insert(make_pair(rela->id, rela)); }
 
@@ -74,24 +75,9 @@ MapNode *MapData::get_node_by_id(LL id)
     return it->second;
 }
 
-void MapData::construct_line_by_signal_way(MapWay *way)
+void MapData::create_lines(MapWay *way, int lvl)
 {
-    MapNode *last_node = NULL;
-    MapLine *last_line = NULL;
-    for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
-        MapNode *node = *nit;
-        if (last_node) {
-            MapLine *line = new MapLine;
-            line->set_line(last_node, node);
-            line->set_way(way);
-            line->prev = last_line;
-            if (last_line) last_line->next = line;
-            insert(line);
-            last_line = line;
-        }
-        last_node = node;
-    }
-    if (last_line) last_line->next = NULL;
+
 }
 
 void MapData::construct()
@@ -101,15 +87,21 @@ void MapData::construct()
     //assert(rl.size() > 0 && rl.size() == rm.size());
     assert(ll.size() == 0);
     
-    TIMING ("mapdata construct", {
+    //TIMING ("mapdata construct", {
+    
+        // fetch level count
+        tot_lvl = ml.get_level_count();
+        assert(tot_lvl > 0);
+        ll.resize(tot_lvl);
+        
         // calc way's rectangles
         for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++) {
             MapWay *way = *wit;
             MapRect &rect = way->rect;
-            assert(way->nl.size() > 0);
-            rect.left = rect.right = way->nl.front()->x;
-            rect.bottom = rect.top = way->nl.front()->y;
-            for (vector<MapNode *>::iterator nit = ++way->nl.begin(); nit != way->nl.end(); nit++) {
+            assert(way->nl[0].size() > 0);
+            rect.left = rect.right = way->nl[0].front()->x;
+            rect.bottom = rect.top = way->nl[0].front()->y;
+            for (vector<MapNode *>::iterator nit = ++way->nl[0].begin(); nit != way->nl[0].end(); nit++) {
                 MapNode *node = *nit;
                 rect.left = min(rect.left, node->x);
                 rect.right = max(rect.right, node->x);
@@ -118,32 +110,84 @@ void MapData::construct()
             }
         }
         
-        // construct lines
-        for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++)
-            construct_line_by_signal_way(*wit);
+        // alloc memory for node list of each level in ways
+        for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++) {
+            MapWay *way = *wit;
+            way->nl.resize(tot_lvl);
+        }
         
-        // put lines to r-tree
-        assert(ml.get_level_count() > 0);
-        lrt = new MapRTree<MapLine *> [ml.get_level_count()];
-        
-        for (vector<MapLine *>::iterator lit = ll.begin(); lit != ll.end(); lit++) {
-            MapLine *line = *lit;
-            int slvl = wt.query_level(line->way->waytype); // suggested level
+        // calc way's level
+        for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++) {
+            MapWay *way = *wit;
+            int slvl = wt.query_level(way->waytype); // suggested level
             if (slvl == -1) {
-                double res = line->way->get_rect().max_distance() / dfactor;
+                double res = way->get_rect().max_distance() / dfactor;
                 slvl = ml.select_level(res);
             } else if (slvl == -2) {
-                slvl = ml.get_level_count() - 1;
+                slvl = tot_lvl - 1;
             }
             assert(slvl >= 0);
-            for (int lvl = 0; lvl <= slvl; lvl++)
-                lrt[lvl].insert(line);
+            way->level = slvl;
         }
+        
+        // calc way's node list by level
+        for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++) {
+            MapWay *way = *wit;
+            vector<MapNode *> &wnl = way->nl[0];
+            assert(wnl.size() > 0);
+            for (int lvl = 1; lvl <= way->level; lvl++) {
+                MapPoint A, B;
+                A = MapPoint(wnl.front()->x, wnl.front()->y);
+                way->nl[lvl].push_back(wnl.front());
+                for (vector<MapNode *>::iterator nit = ++wnl.begin(); nit != wnl.end(); nit++) {
+                    MapNode *node = *nit;
+                    B = MapPoint(node->x, node->y);
+                    double dist = len(B - A);
+                    if (dist > 0) {
+                        way->nl[lvl].push_back(node);
+                    }
+                    A = B;
+                }
+            }
+        }
+        
+        // construct lines
+        for (int lvl = 0; lvl < tot_lvl; lvl++)
+            for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++) {
+                MapWay *way = *wit;
+                MapNode *last_node = NULL;
+                MapLine *last_line = NULL;
+                for (vector<MapNode *>::iterator nit = way->nl[lvl].begin(); nit != way->nl[lvl].end(); nit++) {
+                    MapNode *node = *nit;
+                    if (last_node) {
+                        MapLine *line = new MapLine;
+                        line->set_line(last_node, node);
+                        line->set_way(way);
+                        line->prev = last_line;
+                        if (last_line) last_line->next = line;
+                        ll[lvl].push_back(line);
+                        last_line = line;
+                    }
+                    last_node = node;
+                }
+                if (last_line) last_line->next = NULL;
+            }
+        
+        
+        // create r-trees
+        lrt = new MapRTree<MapLine *> [tot_lvl];
+        
+        // put lines to r-tree
+        for (int lvl = 0; lvl < tot_lvl; lvl++)
+            for (vector<MapLine *>::iterator lit = ll[lvl].begin(); lit != ll[lvl].end(); lit++) {
+                MapLine *line = *lit;
+                lrt[lvl].insert(line);
+            }
         
         // construct dict
         wd.construct();
         nd.construct();
-    })
+    //})
 }
 
 void MapData::print_stat()

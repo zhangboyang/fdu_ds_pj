@@ -93,10 +93,10 @@ void MapGraphics::show_wayinfo()
         // way length
         double way_length = 0;
         MapPoint A, B;
-        for (vector<MapNode *>::iterator it = sway->nl.begin(); it != sway->nl.end(); it++) {
+        for (vector<MapNode *>::iterator it = sway->nl[0].begin(); it != sway->nl[0].end(); it++) {
             MapNode *node = *it;
             B = MapPoint(node->x, node->y);
-            if (it != sway->nl.begin()) {
+            if (it != sway->nl[0].begin()) {
                 way_length += len(B - A);
             }
             A = B;
@@ -109,11 +109,11 @@ void MapGraphics::show_wayinfo()
         mgui->set_msgbox_append(s2ws(string(buf)));
         
         // way area
-        if (!sway->nl.empty() && sway->nl.front() == sway->nl.back()) {
+        if (!sway->nl[0].empty() && sway->nl[0].front() == sway->nl[0].back()) {
             double way_area = 0;
-            MapPoint P(sway->nl.front()->x, sway->nl.front()->y);
+            MapPoint P(sway->nl[0].front()->x, sway->nl[0].front()->y);
             MapPoint A(P), B;
-            for (vector<MapNode *>::iterator it = ++sway->nl.begin(); it != sway->nl.end(); it++) {
+            for (vector<MapNode *>::iterator it = ++sway->nl[0].begin(); it != sway->nl[0].end(); it++) {
                 MapNode *node = *it;
                 B = MapPoint(node->x, node->y);
                 way_area += det(B - A, B - P);
@@ -179,10 +179,10 @@ void MapGraphics::select_way()
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
         MapWay *way = *wit;
         MapPoint A, B;
-        for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
+        for (vector<MapNode *>::iterator nit = way->nl[0].begin(); nit != way->nl[0].end(); nit++) {
             MapNode *node = *nit;
             B = MapPoint(node->x, node->y);
-            if (nit != way->nl.begin()) {
+            if (nit != way->nl[0].begin()) {
                 double distsq = distsq_p2s(P, A, B);
                 if (distsq < mdistsq) { mdistsq = distsq; sway = way; }
             }
@@ -200,7 +200,7 @@ void MapGraphics::select_point()
     double mdistsq = F_INF;
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
         MapWay *way = *wit;
-        for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
+        for (vector<MapNode *>::iterator nit = way->nl[0].begin(); nit != way->nl[0].end(); nit++) {
             MapNode *node = *nit;
             double distsq = sq(cx - node->x) + sq(cy - node->y);
             if (distsq < mdistsq) { mdistsq = distsq; snode = node; }
@@ -386,7 +386,7 @@ void MapGraphics::center_point(MapNode *node)
 
 void MapGraphics::center_way(MapWay *way)
 {
-    if (way && !way->nl.empty()) {
+    if (way) {
         sway = way;
         MapRect rect = way->get_rect();
         MapRect grect;
@@ -459,7 +459,7 @@ void MapGraphics::highlight_point(MapNode *node, float color[], float thick)
 void MapGraphics::draw_way(MapWay *way)
 {
     glBegin(GL_LINE_STRIP);
-    for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
+    for (vector<MapNode *>::iterator nit = way->nl[0].begin(); nit != way->nl[0].end(); nit++) {
         MapNode *node = *nit;
         double gx, gy;
         trans_gcoord(node->x, node->y, &gx, &gy);

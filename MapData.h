@@ -14,7 +14,7 @@ const double dist_factor = 4.0009e7 / 360; // from lat to meters
 class MapData {
     private:
     std::vector<MapNode *> nl; // l: object list
-    std::vector<MapLine *> ll;
+    std::vector<std::vector<MapLine *> > ll; // line list by level
     std::vector<MapWay *> wl;
     std::vector<MapRelation *> rl;
     
@@ -23,8 +23,9 @@ class MapData {
     std::map<LL, MapRelation *> rm;
     
     void trans_coord(double lat, double lon, double *x, double *y);
-    void construct_line_by_signal_way(MapWay *way);
-    void insert(MapLine *line);
+    void create_lines(MapWay *way, int lvl);
+    
+    int tot_lvl;
     
     public:
     MapDict<MapWay *> wd; // dict of ways

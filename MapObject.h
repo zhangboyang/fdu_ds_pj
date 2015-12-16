@@ -45,8 +45,9 @@ class MapWay : public MapObject {
     //virtual ObjectType type();
     //int level;
     int waytype;
+    int level;
     MapRect rect;
-    std::vector<MapNode *> nl; // nl: node list
+    std::vector<std::vector<MapNode *> > nl; // nl: node list
     
     std::map<std::string, const wchar_t *> names;
     //static bool compare_by_waytype(MapWay *a, MapWay *b); // useful when sorting ways
@@ -55,6 +56,7 @@ class MapWay : public MapObject {
     MapRect get_rect();
     //void get_center(double *x, double *y);
     //void get_xysize(double *sizex, double *sizey);
+    MapWay();
     ~MapWay();
 };
 

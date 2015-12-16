@@ -43,7 +43,7 @@ MapRect MapLine::get_rect()
 
 /* MapWay */
 //MapObject::ObjectType MapWay::type() { return WAY; }
-void MapWay::add_node(MapNode *node) { nl.push_back(node); }
+void MapWay::add_node(MapNode *node) { nl[0].push_back(node); }
 MapRect MapWay::get_rect() { return rect; }
 
 /*void MapWay::get_center(double *x, double *y)
@@ -62,6 +62,7 @@ void MapWay::get_xysize(double *sizex, double *sizey)
 
 //bool MapWay::compare_by_waytype(MapWay *a, MapWay *b) { return a->waytype == 0 && a->waytype > b->waytype; }
 //void MapWay::set_level(int level) { MapWay::level = level; }
+MapWay::MapWay() { nl.resize(1); }
 MapWay::~MapWay()
 {
     for (std::map<std::string, const wchar_t *>::iterator it = names.begin(); it != names.end(); it++)
