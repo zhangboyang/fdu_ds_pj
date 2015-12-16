@@ -102,7 +102,22 @@ void MapData::construct()
     assert(ll.size() == 0);
     
     TIMING ("mapdata construct", {
-    
+        // calc way's rectangles
+        for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++) {
+            MapWay *way = *wit;
+            MapRect &rect = way->rect;
+            assert(way->nl.size() > 0);
+            rect.left = rect.right = way->nl.front()->x;
+            rect.bottom = rect.top = way->nl.front()->y;
+            for (vector<MapNode *>::iterator nit = ++way->nl.begin(); nit != way->nl.end(); nit++) {
+                MapNode *node = *nit;
+                rect.left = min(rect.left, node->x);
+                rect.right = max(rect.right, node->x);
+                rect.bottom = min(rect.bottom, node->y);
+                rect.top = max(rect.top, node->y);
+            }
+        }
+        
         // construct lines
         for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++)
             construct_line_by_signal_way(*wit);
@@ -115,7 +130,7 @@ void MapData::construct()
             MapLine *line = *lit;
             int slvl = wt.query_level(line->way->waytype); // suggested level
             if (slvl == -1) {
-                double res = line->get_rect().max_distance() * dfactor;
+                double res = line->way->get_rect().max_distance() / dfactor;
                 slvl = ml.select_level(res);
             } else if (slvl == -2) {
                 slvl = ml.get_level_count() - 1;

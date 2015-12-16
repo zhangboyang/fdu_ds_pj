@@ -45,6 +45,7 @@ class MapWay : public MapObject {
     //virtual ObjectType type();
     //int level;
     int waytype;
+    MapRect rect;
     std::vector<MapNode *> nl; // nl: node list
     
     std::map<std::string, const wchar_t *> names;

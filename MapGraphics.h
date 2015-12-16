@@ -7,7 +7,7 @@
 
 class MapGraphics {
     public:
-    static const int NUM_MAX = 5;
+    static const int NUM_MAX = 10;
     
     private:    
     enum MapGraphicsOperation {
@@ -28,6 +28,7 @@ class MapGraphics {
         SHOW_WAYINFO,
         SHOW_NODEINFO,
         POP_DISPLAY,
+        SHOW_QUERY_RESULT,
     };
     
     std::vector<MapLine *> dll; // draw line list
@@ -50,13 +51,20 @@ class MapGraphics {
     MapData *md;
     MapGUI *mgui;
     
+    // query
+    std::vector<MapNode *> nresult;
+    std::vector<MapWay *> wresult;
+    std::wstring query_description;
+    
+    
+    void query_name();
+    void show_results();
     
     void select_way();
     void select_point();
     void number_way();
     void number_point();
     void clear_select();
-    void query_name();
     void show_wayinfo();
     void show_nodeinfo();
     

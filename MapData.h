@@ -32,7 +32,7 @@ class MapData {
     
     MapLevel ml;
     MapWayType wt;
-    int dfactor; // display factor
+    double dfactor; // display factor
     MapRTree<MapLine *> *lrt;
 
     double minx, miny;

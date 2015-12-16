@@ -21,22 +21,59 @@ void MapGraphics::target_gui(MapGUI *mgui) { MapGraphics::mgui = mgui; }
 // gui staff
 void MapGraphics::query_name()
 {
-    printf("INIT!\n");
     mgui->prepare_inputbox();
-    mgui->set_inputbox_title(L"i am title");
-    mgui->set_inputbox_description(L"set_msgbox_description");
-    mgui->set_inputbox_text(L"text!");
-    std::wstring uinput = mgui->show_inputbox();
+    mgui->set_inputbox_title(L"Query objects by name");
+    mgui->set_inputbox_description(L"Query Name");
+    wstring uinput = mgui->show_inputbox();
+    if (uinput.length() == 0) return;
+    const wchar_t *wstr = uinput.c_str();
+    query_description = L"Query by name: " + uinput;
     
-    printf("str=%s\n", ws2s(uinput).c_str());
+    nresult.clear();
+    wresult.clear();
+    TIMING ("query by name", {
+        md->nd.find(nresult, wstr);
+        md->wd.find(wresult, wstr);
+    })
+    for (int i = 0; i < NUM_MAX; i++) {
+        if (i < (LL) nresult.size()) nnode[i] = nresult[i];
+        if (i < (LL) wresult.size()) nway[i] = wresult[i];
+    }
     
+    show_results();
+}
+
+void MapGraphics::show_results()
+{
+    char buf[MAXLINE];
     mgui->prepare_msgbox();
-    mgui->set_msgbox_title(s2ws("哈哈哈！"));
-    mgui->set_msgbox_description(L"set_msgbox_description");
-    mgui->set_msgbox_append(L"text!");
-    mgui->set_msgbox_append(uinput);
+    mgui->set_msgbox_title(L"Query esult");
+    mgui->set_msgbox_description(L"Here are query results:");
+    mgui->set_msgbox_append(L"== Query ==");
+    mgui->set_msgbox_append(s2ws("  ") + query_description);
+    mgui->set_msgbox_append(L"");
+    
+    for (vector<MapNode *>::iterator it = nresult.begin(); it != nresult.end(); it++) {
+        MapNode *node = *it;
+        sprintf(buf, "== Node Result %d : #%lld ==", (int)(it - nresult.begin()), node->id);
+        mgui->set_msgbox_append(s2ws(string(buf)));
+        for (map<string, const wchar_t *>::iterator it = node->names.begin(); it != node->names.end(); it++) {
+            mgui->set_msgbox_append(L"  [" + s2ws(it->first) + L"] " + wstring(it->second));
+        }
+    }
+    mgui->set_msgbox_append(L"");
+    mgui->set_msgbox_append(L"");
+    
+    for (vector<MapWay *>::iterator it = wresult.begin(); it != wresult.end(); it++) {
+        MapWay *way = *it;
+        sprintf(buf, "== Way Result %d : #%lld ==", (int)(it - wresult.begin()), way->id);
+        mgui->set_msgbox_append(s2ws(string(buf)));
+        for (map<string, const wchar_t *>::iterator it = way->names.begin(); it != way->names.end(); it++) {
+            mgui->set_msgbox_append(L"  [" + s2ws(it->first) + L"] " + wstring(it->second));
+        }
+    }
+    
     mgui->show_msgbox();
-    printf("FINISH!\n");
 }
 
 void MapGraphics::show_wayinfo()
@@ -46,17 +83,17 @@ void MapGraphics::show_wayinfo()
         mgui->prepare_msgbox();
         mgui->set_msgbox_title(s2ws("Way Information"));
         sprintf(buf, "Here is information about way %lld", sway->id);
-        mgui->set_msgbox_description(s2ws(std::string(buf)));
+        mgui->set_msgbox_description(s2ws(string(buf)));
         
         // way names
-        for (std::map<std::string, const wchar_t *>::iterator it = sway->names.begin(); it != sway->names.end(); it++) {
-            mgui->set_msgbox_append(L"[" + s2ws(it->first) + L"] " + std::wstring(it->second));
+        for (map<string, const wchar_t *>::iterator it = sway->names.begin(); it != sway->names.end(); it++) {
+            mgui->set_msgbox_append(L"[" + s2ws(it->first) + L"] " + wstring(it->second));
         }
         
         // way length
         double way_length = 0;
         MapPoint A, B;
-        for (std::vector<MapNode *>::iterator it = sway->nl.begin(); it != sway->nl.end(); it++) {
+        for (vector<MapNode *>::iterator it = sway->nl.begin(); it != sway->nl.end(); it++) {
             MapNode *node = *it;
             B = MapPoint(node->x, node->y);
             if (it != sway->nl.begin()) {
@@ -69,14 +106,14 @@ void MapGraphics::show_wayinfo()
             sprintf(buf, "[length] %.2f km", way_length * 1e-3);
         else
             sprintf(buf, "[length] %.2f m", way_length);
-        mgui->set_msgbox_append(s2ws(std::string(buf)));
+        mgui->set_msgbox_append(s2ws(string(buf)));
         
         // way area
         if (!sway->nl.empty() && sway->nl.front() == sway->nl.back()) {
             double way_area = 0;
             MapPoint P(sway->nl.front()->x, sway->nl.front()->y);
             MapPoint A(P), B;
-            for (std::vector<MapNode *>::iterator it = ++sway->nl.begin(); it != sway->nl.end(); it++) {
+            for (vector<MapNode *>::iterator it = ++sway->nl.begin(); it != sway->nl.end(); it++) {
                 MapNode *node = *it;
                 B = MapPoint(node->x, node->y);
                 way_area += det(B - A, B - P);
@@ -87,7 +124,7 @@ void MapGraphics::show_wayinfo()
                 sprintf(buf, "[area] %.3f km2", way_area * 1e-6);
             else
                 sprintf(buf, "[area] %.2f m2", way_area);
-            mgui->set_msgbox_append(s2ws(std::string(buf)));
+            mgui->set_msgbox_append(s2ws(string(buf)));
         }
         mgui->show_msgbox();
     }
@@ -100,16 +137,16 @@ void MapGraphics::show_nodeinfo()
         mgui->prepare_msgbox();
         mgui->set_msgbox_title(s2ws("Node Information"));
         sprintf(buf, "Here is information about node %lld", snode->id);
-        mgui->set_msgbox_description(s2ws(std::string(buf)));
+        mgui->set_msgbox_description(s2ws(string(buf)));
         
         // node names
-        for (std::map<std::string, const wchar_t *>::iterator it = snode->names.begin(); it != snode->names.end(); it++) {
-            mgui->set_msgbox_append(L"[" + s2ws(it->first) + L"] " + std::wstring(it->second));
+        for (map<string, const wchar_t *>::iterator it = snode->names.begin(); it != snode->names.end(); it++) {
+            mgui->set_msgbox_append(L"[" + s2ws(it->first) + L"] " + wstring(it->second));
         }
         
         // node coord
         sprintf(buf, "[coord] lat=%f lon=%f", snode->lat, snode->lon);
-        mgui->set_msgbox_append(s2ws(std::string(buf)));
+        mgui->set_msgbox_append(s2ws(string(buf)));
         
         mgui->show_msgbox();
     }
@@ -181,7 +218,7 @@ void MapGraphics::number_point()
 
 void MapGraphics::number_way()
 {
-    printf("NWAY %d\n", kbd_num);
+    //printf("NWAY %d\n", kbd_num);
     for (int num = 0; num < NUM_MAX; num++)
         if (nway[num] == sway)
             return;
@@ -229,15 +266,15 @@ void MapGraphics::push_display_range()
             (!fequ(display_stack.back().first.first, centerx) ||
              !fequ(display_stack.back().first.second, centery) ||
              display_stack.back().second != zoom_level)) {
-        printf("PUSH!\n");
-        display_stack.push_back(std::make_pair(std::make_pair(centerx, centery), zoom_level));
+        //printf("PUSH!\n");
+        display_stack.push_back(make_pair(make_pair(centerx, centery), zoom_level));
     }
 }
 
 void MapGraphics::pop_display_range()
 {
     if (!display_stack.empty()) {
-        printf("POP!\n");
+        //printf("POP!\n");
         double centerx, centery;
         int f;
         centerx = display_stack.back().first.first;
@@ -280,8 +317,8 @@ void MapGraphics::zoom_display_range(int f)
 
 void MapGraphics::zoom_display_by_size(double sizex, double sizey)
 {
-    sizex *= zoom_bysize_factor;
-    sizey *= zoom_bysize_factor;
+    sizex /= zoom_bysize_factor;
+    sizey /= zoom_bysize_factor;
     
     //             sizex < smallerx   --> make diffx smaller
     //  diffx > sizex >= smallerx
@@ -390,6 +427,7 @@ void MapGraphics::map_operation(MapGraphicsOperation op)
             case CENTER_SEL_WAY: center_way(sway); break;
             case SHOW_NODEINFO: show_nodeinfo(); break;
             case SHOW_WAYINFO: show_wayinfo(); break;
+            case SHOW_QUERY_RESULT: show_results(); break;
             default: assert(0); break;
         }
     }
@@ -538,6 +576,7 @@ void MapGraphics::special_keyevent(int key, int x, int y)
         case GLUT_KEY_F2: op = TOGGLE_RTREE; break;
         case GLUT_KEY_F3: op = QUERY_NAME; break;
         case GLUT_KEY_F4: op = CLEAR_SELECT; break;
+        case GLUT_KEY_F8: op = SHOW_QUERY_RESULT; break;
         case GLUT_KEY_F9: op = CENTER_SEL_POINT; break;
         case GLUT_KEY_F10: op = CENTER_SEL_WAY; break;
         case GLUT_KEY_F11: op = SHOW_NODEINFO; break;
@@ -572,26 +611,27 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case ')': kbd_char = '0'; shift = 1; break;
     }
     if (isdigit(kbd_char)) {
-        if ('1' <= kbd_char && kbd_char <= '5') {
-            kbd_num = kbd_char - '1';
-            if (shift)
-                op = NUMBER_POINT;
-            else
-                op = CENTER_NUM_POINT;
-        } else {
-            kbd_num = kbd_char == '0' ? 4 : kbd_char - '6';
-            if (shift)
-                op = NUMBER_WAY;
-            else
-                op = CENTER_NUM_WAY;
-        }
+        kbd_num = kbd_char == '0' ? 9 : kbd_char - '1';
+        assert(kbd_num < NUM_MAX);
+        if (shift)
+            op = NUMBER_POINT;
+        else
+            op = CENTER_NUM_POINT;
+    } else if (strchr("qwertyuiop", kbd_char)) {
+        const char *s = "qwertyuiop";
+        kbd_num = strchr(s, kbd_char) - s;
+        assert(kbd_num < NUM_MAX);
+        if (shift)
+            op = NUMBER_WAY;
+        else
+            op = CENTER_NUM_WAY;
     } else switch (kbd_char) {
         case '-': case '_' : op = ZOOM_OUT; break;
         case '+': case '=' : op = ZOOM_IN; break;
-        case 'w': op = UP; break;
-        case 's': op = DOWN; break;
-        case 'a': op = LEFT; break;
-        case 'd': op = RIGHT; break;
+        case 'k': op = UP; break;
+        case 'j': op = DOWN; break;
+        case 'h': op = LEFT; break;
+        case 'l': op = RIGHT; break;
         case '\x1b': op = POP_DISPLAY; break; // ESC
         default: printf("unknown key %c\n", key); return;
     }
@@ -659,6 +699,7 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     mgptr = this;
     
     show_rtree = 0;
+    query_description = L"No Query";
     clear_select();
     window_width = initial_window_height * md->map_ratio;
     window_height = initial_window_height;

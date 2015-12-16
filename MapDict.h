@@ -20,15 +20,18 @@ class MapDict {
     public:
     void insert(const wchar_t *key, TP value) { while (*key) dict.push_back(kvpair(key++, value)); }
     void construct() { std::sort(dict.begin(), dict.end()); }
-    void find(std::vector<TP> &result, const wchar_t *wstr)
+    void find(std::vector<TP> &result, const wchar_t *wstr, int limit)
     {
-        typename std::vector<TP>::iterator it;
+        typename std::vector<kvpair>::iterator it;
         it = std::lower_bound(dict.begin(), dict.end(), kvpair(wstr, NULL));
+        int cnt = 0;
         while (it != dict.end()) {
             if (!it->is_prefix(wstr)) break;
-            result.push_back(*it->value);
+            if (limit >= 0 && ++cnt > limit) break;
+            result.push_back(it->value);
             it++;
         }
     }
+    void find(std::vector<TP> &result, const wchar_t *wstr) { find(result, wstr, -1); }
 };
 #endif

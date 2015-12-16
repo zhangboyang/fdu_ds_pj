@@ -113,6 +113,7 @@ void MapXMLLoader::process_node()
     if (deepth != 1) return;
     
     mway_ptr = NULL; // reset temp ptr
+    mnode_ptr = NULL;
     if (strcmp(name, "node") == 0) {
         LL id = get_LL_attr("id");
         MapNode *mnode = new MapNode;
