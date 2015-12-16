@@ -92,8 +92,8 @@ void MapGraphics::show_wayinfo()
         
         // way length
         double way_length = 0;
-        MapPoint A, B;
-        for (vector<MapNode *>::iterator it = sway->nl[0].begin(); it != sway->nl[0].end(); it++) {
+        MapPoint A(sway->nl[0].front()->x, sway->nl[0].front()->y), B;
+        for (vector<MapNode *>::iterator it = ++sway->nl[0].begin(); it != sway->nl[0].end(); it++) {
             MapNode *node = *it;
             B = MapPoint(node->x, node->y);
             if (it != sway->nl[0].begin()) {
@@ -179,10 +179,10 @@ void MapGraphics::select_way()
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
         MapWay *way = *wit;
         MapPoint A, B;
-        for (vector<MapNode *>::iterator nit = way->nl[0].begin(); nit != way->nl[0].end(); nit++) {
+        for (vector<MapNode *>::iterator nit = way->nl[clvl].begin(); nit != way->nl[clvl].end(); nit++) {
             MapNode *node = *nit;
             B = MapPoint(node->x, node->y);
-            if (nit != way->nl[0].begin()) {
+            if (nit != way->nl[clvl].begin()) {
                 double distsq = distsq_p2s(P, A, B);
                 if (distsq < mdistsq) { mdistsq = distsq; sway = way; }
             }
@@ -200,7 +200,7 @@ void MapGraphics::select_point()
     double mdistsq = F_INF;
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
         MapWay *way = *wit;
-        for (vector<MapNode *>::iterator nit = way->nl[0].begin(); nit != way->nl[0].end(); nit++) {
+        for (vector<MapNode *>::iterator nit = way->nl[clvl].begin(); nit != way->nl[clvl].end(); nit++) {
             MapNode *node = *nit;
             double distsq = sq(cx - node->x) + sq(cy - node->y);
             if (distsq < mdistsq) { mdistsq = distsq; snode = node; }
@@ -229,6 +229,11 @@ void MapGraphics::number_way()
 double MapGraphics::get_display_resolution()
 {
     return (md->maxy - md->miny) * pow(zoom_step, zoom_level);
+}
+
+void MapGraphics::update_current_display_level()
+{
+    clvl = md->ml.select_level(get_display_resolution());
 }
 
 void MapGraphics::trans_gcoord(double x, double y, double *gx, double *gy)
@@ -459,7 +464,7 @@ void MapGraphics::highlight_point(MapNode *node, float color[], float thick)
 void MapGraphics::draw_way(MapWay *way)
 {
     glBegin(GL_LINE_STRIP);
-    for (vector<MapNode *>::iterator nit = way->nl[0].begin(); nit != way->nl[0].end(); nit++) {
+    for (vector<MapNode *>::iterator nit = way->nl[clvl].begin(); nit != way->nl[clvl].end(); nit++) {
         MapNode *node = *nit;
         double gx, gy;
         trans_gcoord(node->x, node->y, &gx, &gy);
@@ -484,17 +489,19 @@ void MapGraphics::redraw()
     rtrans_gcoord(dminx, dminy, &mminx, &mminy);
     rtrans_gcoord(dmaxx, dmaxy, &mmaxx, &mmaxy);
     
+    
+    update_current_display_level();
+    printf("current display level: %d\n", clvl);
+    
     dll.clear();
-    int lvl_low_limit = md->ml.select_level(get_display_resolution());
-    printf("display level: %d\n", lvl_low_limit);
-    md->lrt[lvl_low_limit].find(dll, MapRect(mminx, mmaxx, mminy, mmaxy));
+    md->lrt[clvl].find(dll, MapRect(mminx, mmaxx, mminy, mmaxy));
     printf("r-tree result lines: %lld\n", (LL) dll.size());
 
     // draw r-tree rectangles
 
     if (show_rtree) {
         vector<MapRect> rtree_rects;
-        md->lrt[lvl_low_limit].get_all_tree_rect(rtree_rects);
+        md->lrt[clvl].get_all_tree_rect(rtree_rects);
         printf("rect count = %lld\n", (LL) rtree_rects.size());
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glLineWidth(1.0f);
@@ -704,6 +711,7 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     window_width = initial_window_height * md->map_ratio;
     window_height = initial_window_height;
     reset_display_range();
+    
     
     /* glut things */
     glutInit(&argc, argv);

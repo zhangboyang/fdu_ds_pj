@@ -22,3 +22,5 @@ int MapLevel::select_level(double res)
     return lvl;
 }
 
+double MapLevel::get_level(int lvl) { assert(0 <= lvl && lvl < (LL) lvllist.size()); return lvllist[lvl]; }
+

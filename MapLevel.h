@@ -12,5 +12,6 @@ class MapLevel {
     int get_level_count();
     void add_level(double res);
     int select_level(double res);
+    double get_level(int lvl);
 };
 #endif

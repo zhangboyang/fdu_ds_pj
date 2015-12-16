@@ -75,11 +75,6 @@ MapNode *MapData::get_node_by_id(LL id)
     return it->second;
 }
 
-void MapData::create_lines(MapWay *way, int lvl)
-{
-
-}
-
 void MapData::construct()
 {
     assert(nl.size() > 0 && nl.size() == nm.size());
@@ -136,16 +131,31 @@ void MapData::construct()
             vector<MapNode *> &wnl = way->nl[0];
             assert(wnl.size() > 0);
             for (int lvl = 1; lvl <= way->level; lvl++) {
-                MapPoint A, B;
+                double res = ml.get_level(lvl);
+                double low_res = res * line_detail_dist_low_limit_factor;
+                double high_res = res * line_detail_dist_high_limit_factor;
+                MapPoint A, B, L; // L->A->B
+                bool Lflag = false;
                 A = MapPoint(wnl.front()->x, wnl.front()->y);
                 way->nl[lvl].push_back(wnl.front());
+                double ang = 0, dist = 0;
                 for (vector<MapNode *>::iterator nit = ++wnl.begin(); nit != wnl.end(); nit++) {
                     MapNode *node = *nit;
                     B = MapPoint(node->x, node->y);
-                    double dist = len(B - A);
-                    if (dist > 0) {
+                    dist += len(B - A);
+                    if (Lflag) 
+                        ang = fabs(angle(B - A, A - L));
+                    else
+                        Lflag = true;
+                    if (*nit == wnl.back() || // last point must included
+                            dist > high_res ||
+                            (dist > low_res && // distance limit
+                             ang > line_detail_angle_limit * M_PI / 180) // angle limit
+                        ) {
+                        dist = 0;
                         way->nl[lvl].push_back(node);
                     }
+                    L = A;
                     A = B;
                 }
             }

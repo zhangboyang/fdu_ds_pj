@@ -47,6 +47,7 @@ class MapGraphics {
     int window_width, window_height;
     std::vector<std::pair<std::pair<double, double>, int> > display_stack; // ((center_x, center_y), zoom_level)
     int zoom_level;
+    int clvl; // current display level
     int show_rtree;
     MapData *md;
     MapGUI *mgui;
@@ -74,6 +75,7 @@ class MapGraphics {
     void rtrans_gcoord(double gx, double gy, double *x, double *y);
     
     double get_display_resolution();
+    void update_current_display_level();
     int get_display_level_limit();
     void set_display_range(double dminx, double dmaxx, double dminy, double dmaxy);
     void push_display_range();

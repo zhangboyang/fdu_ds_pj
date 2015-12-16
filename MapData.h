@@ -23,7 +23,6 @@ class MapData {
     std::map<LL, MapRelation *> rm;
     
     void trans_coord(double lat, double lon, double *x, double *y);
-    void create_lines(MapWay *way, int lvl);
     
     int tot_lvl;
     
@@ -33,9 +32,13 @@ class MapData {
     
     MapLevel ml;
     MapWayType wt;
-    double dfactor; // display factor
     MapRTree<MapLine *> *lrt;
 
+    double dfactor; // display factor
+    double line_detail_dist_low_limit_factor;
+    double line_detail_dist_high_limit_factor;
+    double line_detail_angle_limit;
+    
     double minx, miny;
     double maxx, maxy;
     double minlat, minlon;

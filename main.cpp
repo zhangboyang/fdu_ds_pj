@@ -28,6 +28,10 @@ int main(int argc, char *argv[])
     int tot_lvl;
     tot_lvl = str2LL(cfgp.query("LEVEL_TOTAL"));
     md.dfactor = str2double(cfgp.query("DISPLAY_FACTOR"));
+    md.line_detail_dist_low_limit_factor = str2double(cfgp.query("LINE_DETAIL_DIST_LOW_LIMIT_FACTOR"));
+    md.line_detail_dist_high_limit_factor = str2double(cfgp.query("LINE_DETAIL_DIST_HIGH_LIMIT_FACTOR"));
+    md.line_detail_angle_limit = str2double(cfgp.query("LINE_DETAIL_ANGLE_LIMIT"));
+    
     for (int lvl = 0; lvl < tot_lvl; lvl++) {
         char buf[MAXLINE];
         double res;

@@ -19,6 +19,7 @@ inline static double det(const MapVector &a, const MapVector &b) { return a.x * 
 inline static double dot(const MapVector &a, const MapVector &b) { return a.x * b.x + a.y * b.y; }
 inline static double lensq(const MapVector &a) { return dot(a, a); } // sq means squared
 inline static double len(const MapVector &a) { return sqrt(lensq(a)); }
+inline static double angle(const MapVector &a, const MapVector &b) { return acos(dot(a, b) / len(a) / len(b)); }
 
 inline static double distsq_p2s(const MapPoint &p, const MapPoint &a, const MapPoint &b)
 {
