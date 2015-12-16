@@ -83,8 +83,8 @@ void MapGraphics::show_wayinfo()
                 A = B;
             }
             way_area = fabs(way_area * sq(dist_factor) / 2);
-            if (way_area >= 1e4)
-                sprintf(buf, "[area] %.2f km2", way_area * 1e-6);
+            if (way_area >= 1e3)
+                sprintf(buf, "[area] %.3f km2", way_area * 1e-6);
             else
                 sprintf(buf, "[area] %.2f m2", way_area);
             mgui->set_msgbox_append(s2ws(std::string(buf)));
@@ -120,6 +120,7 @@ void MapGraphics::clear_select()
     snode = NULL;
     sway = NULL;
     memset(nnode, 0, sizeof(nnode));
+    memset(nway, 0, sizeof(nway));
 }
 
 void MapGraphics::select_way()
@@ -172,21 +173,19 @@ void MapGraphics::select_point()
 
 void MapGraphics::number_point()
 {
-    int val = kbd_char - '0';
-    for (int num = 0; num <= 9; num++)
+    for (int num = 0; num < NUM_MAX; num++)
         if (nnode[num] == snode)
             return;
-    nnode[val] = snode;
+    nnode[kbd_num] = snode;
 }
 
-void MapGraphics::center_point()
+void MapGraphics::number_way()
 {
-    MapNode *node = nnode[(int) (kbd_char - '0')];
-    if (node) {
-        double gx, gy;
-        trans_gcoord(node->x, node->y, &gx, &gy);
-        move_display_to_point(gx, gy);
-    }
+    printf("NWAY %d\n", kbd_num);
+    for (int num = 0; num < NUM_MAX; num++)
+        if (nway[num] == sway)
+            return;
+    nway[kbd_num] = sway;
 }
 
 // graphics staff
@@ -219,6 +218,35 @@ void MapGraphics::set_display_range(double dminx, double dmaxx, double dminy, do
     trans_gcoord(dminx, dminy, &(MapGraphics::dminx), &(MapGraphics::dminy));  // set limit for MapGraphics
     trans_gcoord(dmaxx, dmaxy, &(MapGraphics::dmaxx), &(MapGraphics::dmaxy));
     zoom_level = 0;
+    display_stack.clear();
+}
+
+void MapGraphics::push_display_range()
+{
+    double centerx = dminx + (dmaxx - dminx) / 2;
+    double centery = dminy + (dmaxy - dminy) / 2;
+    if (display_stack.empty() ||
+            (!fequ(display_stack.back().first.first, centerx) ||
+             !fequ(display_stack.back().first.second, centery) ||
+             display_stack.back().second != zoom_level)) {
+        printf("PUSH!\n");
+        display_stack.push_back(std::make_pair(std::make_pair(centerx, centery), zoom_level));
+    }
+}
+
+void MapGraphics::pop_display_range()
+{
+    if (!display_stack.empty()) {
+        printf("POP!\n");
+        double centerx, centery;
+        int f;
+        centerx = display_stack.back().first.first;
+        centery = display_stack.back().first.second;
+        f = display_stack.back().second;
+        display_stack.pop_back();
+        move_display_to_point(centerx, centery);
+        zoom_display_range(f - zoom_level);
+    }
 }
 
 void MapGraphics::move_display_range(int x, int y)
@@ -247,6 +275,31 @@ void MapGraphics::zoom_display_range(int f)
     dminy += diffy / 2;
     
     zoom_level += f;
+}
+
+
+void MapGraphics::zoom_display_by_size(double sizex, double sizey)
+{
+    sizex *= zoom_bysize_factor;
+    sizey *= zoom_bysize_factor;
+    
+    //             sizex < smallerx   --> make diffx smaller
+    //  diffx > sizex >= smallerx
+    //  diffx <= sizex                --> make diffx bigger
+    
+    const int F_LIMIT = 100;
+    double diffx = dmaxx - dminx;
+    int xf = 0;
+    while (abs(xf) <= F_LIMIT && diffx <= sizex) { diffx *= pow(zoom_step, -1); xf--; }
+    while (abs(xf) <= F_LIMIT && sizex < diffx) { diffx *= pow(zoom_step, 1); xf++; }
+    
+    double diffy = dmaxy - dminy;
+    int yf = 0;
+    while (abs(xf) <= F_LIMIT && diffy <= sizey) { diffy *= pow(zoom_step, -1); yf--; }
+    while (abs(xf) <= F_LIMIT && sizey < diffy) { diffy *= pow(zoom_step, 1); yf++; }
+    
+    int f = min(xf, yf);
+    zoom_display_range(f);
 }
 
 void MapGraphics::move_display_to_point(double gx, double gy)
@@ -279,26 +332,66 @@ void MapGraphics::reset_display_range()
     dminy = dminy - (new_diffy - old_diffy) / 2;
 }
 
+void MapGraphics::center_point(MapNode *node)
+{
+    if (node) {
+        snode = node;
+        double gx, gy;
+        trans_gcoord(node->x, node->y, &gx, &gy);
+        move_display_to_point(gx, gy);
+        /*MapRect rect = node->way->get_rect();
+        MapRect grect;
+        trans_gcoord(rect.left, rect.bottom, &grect.left, &grect.bottom);
+        trans_gcoord(rect.right, rect.top, &grect.right, &grect.top);
+        zoom_display_by_size(grect.right - grect.left, grect.top - grect.bottom);*/
+    }
+}
+
+void MapGraphics::center_way(MapWay *way)
+{
+    if (way && !way->nl.empty()) {
+        sway = way;
+        MapRect rect = way->get_rect();
+        MapRect grect;
+        trans_gcoord(rect.left, rect.bottom, &grect.left, &grect.bottom);
+        trans_gcoord(rect.right, rect.top, &grect.right, &grect.top);
+        double gx, gy;
+        gx = (grect.left + grect.right) / 2;
+        gy = (grect.bottom + grect.top) / 2;
+        move_display_to_point(gx, gy);
+        zoom_display_by_size(grect.right - grect.left, grect.top - grect.bottom);
+    }
+}
+
 void MapGraphics::map_operation(MapGraphicsOperation op)
 {
-    switch (op) {
-        case UP: move_display_range(0, 1); break;
-        case DOWN: move_display_range(0, -1); break;
-        case LEFT: move_display_range(-1, 0); break;
-        case RIGHT: move_display_range(1, 0); break;
-        case ZOOM_OUT: zoom_display_range(-1); break;
-        case ZOOM_IN: zoom_display_range(1); break;
-        case RESET_VIEW: reset_display_range(); break;
-        case TOGGLE_RTREE: show_rtree ^= 1; break;
-        case QUERY_NAME: query_name(); break;
-        case SELECT_WAY: select_way(); break;
-        case SELECT_POINT: select_point(); break;
-        case NUMBER_POINT: number_point(); break;
-        case CLEAR_SELECT: clear_select(); break;
-        case CENTER_POINT: center_point(); break;
-        case SHOW_NODEINFO: show_nodeinfo(); break;
-        case SHOW_WAYINFO: show_wayinfo(); break;
-        default: assert(0); break;
+    if (op == POP_DISPLAY) {
+        pop_display_range();
+    } else {
+        push_display_range();
+        switch (op) {
+            case UP: move_display_range(0, 1); break;
+            case DOWN: move_display_range(0, -1); break;
+            case LEFT: move_display_range(-1, 0); break;
+            case RIGHT: move_display_range(1, 0); break;
+            case ZOOM_OUT: zoom_display_range(-1); break;
+            case ZOOM_IN: zoom_display_range(1); break;
+            case RESET_VIEW: reset_display_range(); break;
+            case TOGGLE_RTREE: show_rtree ^= 1; break;
+            case QUERY_NAME: query_name(); break;
+            case SELECT_WAY: select_way(); break;
+            case SELECT_POINT: select_point(); break;
+            case NUMBER_POINT: number_point(); break;
+            case NUMBER_WAY: number_way(); break;
+            case CLEAR_SELECT: clear_select(); break;
+            case CENTER_NUM_POINT: center_point(nnode[kbd_num]); break;
+            case CENTER_NUM_WAY: center_way(nway[kbd_num]); break;
+            case CENTER_SEL_POINT: center_point(snode); break;
+            case CENTER_SEL_WAY: center_way(sway); break;
+            case SHOW_NODEINFO: show_nodeinfo(); break;
+            case SHOW_WAYINFO: show_wayinfo(); break;
+            default: assert(0); break;
+        }
     }
     glutPostRedisplay();
 }
@@ -322,6 +415,18 @@ void MapGraphics::highlight_point(MapNode *node, float color[], float thick)
     glEnd();
     glBegin(GL_POINTS);
     glVertex2d(gx, gy);
+    glEnd();
+}
+
+void MapGraphics::draw_way(MapWay *way)
+{
+    glBegin(GL_LINE_STRIP);
+    for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
+        MapNode *node = *nit;
+        double gx, gy;
+        trans_gcoord(node->x, node->y, &gx, &gy);
+        glVertex2d(gx, gy);
+    }
     glEnd();
 }
 
@@ -387,30 +492,32 @@ void MapGraphics::redraw()
     }*/
     printf("need to draw %lld ways\n", (LL) dwl.size());
     
+    bool sway_flag = false;
+    for (int num = 0; num < NUM_MAX; num++) {
+        MapWay *way = nway[num];
+        if (way) {
+            if (way == sway) sway_flag = true;
+            glColor3f(ncolor[num][0], ncolor[num][1], ncolor[num][2]);
+            glLineWidth(selected_way_thick);
+            draw_way(way);
+        }
+    }
+    if (sway && !sway_flag) {
+        glColor3f(scolor[0], scolor[1], scolor[2]);
+        glLineWidth(selected_way_thick);
+        draw_way(sway);
+    }
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
         MapWay *way = *wit;
         float r, g, b, thickness;
         md->wt.query_rgbt(way->waytype, &r, &g, &b, &thickness);
-        
-        if (way == sway) {
-            glColor3f(scolor[0], scolor[1], scolor[2]);
-            glLineWidth(selected_way_thick);
-        } else {
-            glColor3f(r, g, b);
-            glLineWidth(thickness);
-        }
-        glBegin(GL_LINE_STRIP);
-        for (vector<MapNode *>::iterator nit = way->nl.begin(); nit != way->nl.end(); nit++) {
-            MapNode *node = *nit;
-            double gx, gy;
-            trans_gcoord(node->x, node->y, &gx, &gy);
-            glVertex2d(gx, gy);
-        }
-        glEnd();
+        glColor3f(r, g, b);
+        glLineWidth(thickness);
+        draw_way(way);
     }
     
     bool snode_flag = false;
-    for (int num = 0; num <= 9; num++) {
+    for (int num = 0; num < NUM_MAX; num++) {
         MapNode *node = nnode[num];
         if (node) {
             highlight_point(node, ncolor[num], selected_point_rect_thick);
@@ -431,6 +538,8 @@ void MapGraphics::special_keyevent(int key, int x, int y)
         case GLUT_KEY_F2: op = TOGGLE_RTREE; break;
         case GLUT_KEY_F3: op = QUERY_NAME; break;
         case GLUT_KEY_F4: op = CLEAR_SELECT; break;
+        case GLUT_KEY_F9: op = CENTER_SEL_POINT; break;
+        case GLUT_KEY_F10: op = CENTER_SEL_WAY; break;
         case GLUT_KEY_F11: op = SHOW_NODEINFO; break;
         case GLUT_KEY_F12: op = SHOW_WAYINFO; break;
         case GLUT_KEY_UP: op = UP; break;
@@ -447,7 +556,7 @@ void MapGraphics::special_keyevent(int key, int x, int y)
 void MapGraphics::keyevent(unsigned char key, int x, int y)
 {
     MapGraphicsOperation op;
-    kbd_char = key;
+    char kbd_char = key;
     if (isupper(kbd_char)) kbd_char = kbd_char - 'A' + 'a';
     int shift = 0;
     switch (kbd_char) { // convert SHIFT+NUM to NUM
@@ -463,10 +572,19 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case ')': kbd_char = '0'; shift = 1; break;
     }
     if (isdigit(kbd_char)) {
-        if (shift)
-            op = NUMBER_POINT;
-        else
-            op = CENTER_POINT;
+        if ('1' <= kbd_char && kbd_char <= '5') {
+            kbd_num = kbd_char - '1';
+            if (shift)
+                op = NUMBER_POINT;
+            else
+                op = CENTER_NUM_POINT;
+        } else {
+            kbd_num = kbd_char == '0' ? 4 : kbd_char - '6';
+            if (shift)
+                op = NUMBER_WAY;
+            else
+                op = CENTER_NUM_WAY;
+        }
     } else switch (kbd_char) {
         case '-': case '_' : op = ZOOM_OUT; break;
         case '+': case '=' : op = ZOOM_IN; break;
@@ -474,6 +592,7 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case 's': op = DOWN; break;
         case 'a': op = LEFT; break;
         case 'd': op = RIGHT; break;
+        case '\x1b': op = POP_DISPLAY; break; // ESC
         default: printf("unknown key %c\n", key); return;
     }
     map_operation(op);
@@ -540,7 +659,7 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     mgptr = this;
     
     show_rtree = 0;
-    clear_select();    
+    clear_select();
     window_width = initial_window_height * md->map_ratio;
     window_height = initial_window_height;
     reset_display_range();

@@ -6,7 +6,10 @@
 #include "MapGUI.h"
 
 class MapGraphics {
-    private:
+    public:
+    static const int NUM_MAX = 5;
+    
+    private:    
     enum MapGraphicsOperation {
         UP, DOWN, LEFT, RIGHT,
         ZOOM_OUT, ZOOM_IN,
@@ -16,25 +19,32 @@ class MapGraphics {
         SELECT_WAY,
         SELECT_POINT,
         NUMBER_POINT, // assign a number to currently selected point
+        NUMBER_WAY,
         CLEAR_SELECT,
-        CENTER_POINT, // center a previously numbered point
+        CENTER_NUM_POINT, // center a previously numbered point
+        CENTER_NUM_WAY,
+        CENTER_SEL_POINT,
+        CENTER_SEL_WAY,
         SHOW_WAYINFO,
         SHOW_NODEINFO,
+        POP_DISPLAY,
     };
     
     std::vector<MapLine *> dll; // draw line list
     std::vector<MapWay *> dwl; // draw way list
     MapNode *snode; // selected node
-    MapNode *nnode[10]; // numbered node
+    MapNode *nnode[NUM_MAX]; // numbered node
     //MapLine *sline; // selected line
     MapWay *sway; // selected way
+    MapWay *nway[NUM_MAX]; // numbered way
     
     double mx, my; // mouse x, mouse y
     MapGraphicsOperation last_mouse_op;
-    char kbd_char;
+    int kbd_num;
     
     double dminx, dmaxx, dminy, dmaxy;
     int window_width, window_height;
+    std::vector<std::pair<std::pair<double, double>, int> > display_stack; // ((center_x, center_y), zoom_level)
     int zoom_level;
     int show_rtree;
     MapData *md;
@@ -43,9 +53,9 @@ class MapGraphics {
     
     void select_way();
     void select_point();
+    void number_way();
     void number_point();
     void clear_select();
-    void center_point();
     void query_name();
     void show_wayinfo();
     void show_nodeinfo();
@@ -58,25 +68,33 @@ class MapGraphics {
     double get_display_resolution();
     int get_display_level_limit();
     void set_display_range(double dminx, double dmaxx, double dminy, double dmaxy);
+    void push_display_range();
+    void pop_display_range();
     void move_display_range(int x, int y);
     void zoom_display_range(int f);
+    void zoom_display_by_size(double sizex, double sizey);
     void move_display_to_point(double gx, double gy);
     void reset_display_range();
+    void center_way(MapWay *way);
+    void center_point(MapNode *node);
+    
     void map_operation(MapGraphicsOperation op);
     
     void set_mouse_coord(int x, int y);
     void mouse_event(bool use_last_op, int button, int state, int x, int y);
     
     void highlight_point(MapNode *node, float color[], float thick);
+    void draw_way(MapWay *way);
     
     public:
     float scolor[3]; // selected color, R, G, B, from 0 to 1
-    float ncolor[10][3]; // numbered color
+    float ncolor[NUM_MAX][3]; // numbered color
     
     int selected_point_rect_size;
     float selected_point_rect_thick;
     float selected_way_thick;
-        
+    double zoom_bysize_factor;
+    
     int initial_window_height;
     double move_step;
     double zoom_step;

@@ -51,6 +51,9 @@ class MapWay : public MapObject {
     //static bool compare_by_waytype(MapWay *a, MapWay *b); // useful when sorting ways
     void add_node(MapNode *node);
     //void set_level(int level);
+    MapRect get_rect();
+    //void get_center(double *x, double *y);
+    //void get_xysize(double *sizex, double *sizey);
     ~MapWay();
 };
 

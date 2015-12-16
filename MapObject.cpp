@@ -44,6 +44,35 @@ MapRect MapLine::get_rect()
 /* MapWay */
 //MapObject::ObjectType MapWay::type() { return WAY; }
 void MapWay::add_node(MapNode *node) { nl.push_back(node); }
+MapRect MapWay::get_rect()
+{
+    MapRect ret;
+    ret.left = ret.right = nl.front()->x;
+    ret.bottom = ret.top = nl.front()->y;
+    for (vector<MapNode *>::iterator nit = ++nl.begin(); nit != nl.end(); nit++) {
+        MapNode *node = *nit;
+        ret.left = min(ret.left, node->x);
+        ret.right = max(ret.right, node->x);
+        ret.bottom = min(ret.bottom, node->y);
+        ret.top = max(ret.top, node->y);
+    }
+    return ret;
+}
+
+/*void MapWay::get_center(double *x, double *y)
+{
+    MapRect rect = get_rect();
+    *x = (rect.left + rect.right) / 2;
+    *y = (rect.bottom + rect.top) / 2;
+}
+
+void MapWay::get_xysize(double *sizex, double *sizey)
+{
+    MapRect rect = get_rect();
+    *sizex = rect.right - rect.left;
+    *sizey = rect.top - rect.bottom;
+}*/
+
 //bool MapWay::compare_by_waytype(MapWay *a, MapWay *b) { return a->waytype == 0 && a->waytype > b->waytype; }
 //void MapWay::set_level(int level) { MapWay::level = level; }
 MapWay::~MapWay()

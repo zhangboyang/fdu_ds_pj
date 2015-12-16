@@ -124,6 +124,10 @@ void MapData::construct()
             for (int lvl = 0; lvl <= slvl; lvl++)
                 lrt[lvl].insert(line);
         }
+        
+        // construct dict
+        wd.construct();
+        nd.construct();
     })
 }
 
