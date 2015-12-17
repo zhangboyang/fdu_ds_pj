@@ -29,11 +29,17 @@ class MapGraphics {
     void set_mouse_coord(int x, int y);
     void mouse_event(bool use_last_op, int button, int state, int x, int y);
     
+    void print_string(const char *str);
     void highlight_point(MapNode *node, double size, float color[], float thick);
     void draw_way(MapWay *way);
     void draw_vertex(double x, double y);
     
     public:
+    std::string msg;
+    std::vector<double> redraw_time; // last redraw time, in ms
+    double last_operation_time;
+    double last_fps;
+    
     std::vector<MapLine *> dll; // draw line list
     std::vector<MapWay *> dwl; // draw way list
     

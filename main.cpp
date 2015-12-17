@@ -109,6 +109,7 @@ int main(int argc, char *argv[])
     
     ProfilerStart("pj_cpu");
     
+    //fclose(stdout);
     mg.show(window_title, argc, argv); // ui loop, never return
     
     assert(0);

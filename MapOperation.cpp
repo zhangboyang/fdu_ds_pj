@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "common.h"
 #include "MapOperation.h"
 #include "MapGraphics.h"
@@ -331,5 +332,7 @@ void MapOperation::operation(MapOperationCode op)
             default: assert(0); break;
         }
     }
+    mg->msg.clear();
+    mg->msg.append("Hello World!");
 }
 

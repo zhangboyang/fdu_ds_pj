@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <ctime>
 #include <GL/glut.h>
 #include "common.h"
 #include "MapData.h"
@@ -29,7 +30,11 @@ void MapGraphics::target_operation(MapOperation *mo)
 void MapGraphics::map_operation(MapOperation::MapOperationCode op)
 {
     assert(mo);
+    clock_t st_clock, ed_clock;
+    st_clock = clock();
     mo->operation(op);
+    ed_clock = clock();
+    last_operation_time = (double) (ed_clock - st_clock) / CLOCKS_PER_SEC * 1000;
     glutPostRedisplay();
 }
 
@@ -245,14 +250,51 @@ void MapGraphics::draw_way(MapWay *way)
     glEnd();
 }
 
+void MapGraphics::print_string(const char *str)
+{
+    glColor3d(1.0, 1.0, 0.0);
+    const double char_height = 13, char_width = 8, padding = 2;
+    int cnt = 0;
+    int maxrow = 1, maxcol = 0;
+    for (const char *ptr = str; *ptr; ptr++)
+        if (*ptr == '\n')
+            cnt = 0, maxrow++;
+        else if (isprint(*ptr))
+            maxcol = max(maxcol, ++cnt);
+    
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glColor3f(0.0f, 0.0f, 0.0f);
+    glBegin(GL_QUADS);
+    double x1 = 0, x2 = (dmaxx - dminx) * (maxcol * char_width + padding) / window_width;
+    double y1 = dmaxy - dminy, y2 = (dmaxy - dminy) * (1 - (maxrow * char_height + padding) / window_height);
+    glVertex2d(x1, y1);
+    glVertex2d(x1, y2);
+    glVertex2d(x2, y2);
+    glVertex2d(x2, y1);
+    glEnd();
+    
+    glColor3d(1.0, 1.0, 1.0);
+    glRasterPos2d(0, (dmaxy - dminy) * (1 - char_height / window_height));
+    cnt = 1;
+    for (const char *ptr = str; *ptr; ptr++)
+        if (*ptr == '\n')
+            glRasterPos2d(0, (dmaxy - dminy) * (1 - ++cnt * char_height / window_height));
+        else if (isprint(*ptr))
+            glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *ptr);
+}
+
 void MapGraphics::redraw()
 {
+    clock_t st_clock, ed_clock;
+    st_clock = clock();
+    
     //fflush(stdout);
     glClear(GL_COLOR_BUFFER_BIT);
     
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0, dmaxx - dminx, 0, dmaxy - dminy);
+    
 //    gluOrtho2D(dminx, dmaxx, dminy, dmaxy);
 //    printf("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
 //    printf("disp-res: %f\n", get_display_resolution());
@@ -354,7 +396,26 @@ void MapGraphics::redraw()
         glEnd();
     }
     
+    char buf[MAXLINE];
+    sprintf(buf, "FPS = %f\n", last_fps);
+    string fpsstr(buf);
+    print_string((fpsstr + msg).c_str());
+    
     glFlush();
+    
+    ed_clock = clock();
+    
+    double cur_redraw_time = (double) (ed_clock - st_clock) / CLOCKS_PER_SEC * 1000;
+    cur_redraw_time += last_operation_time;
+    const int redraw_time_list_avg = 10;
+    if (redraw_time.size() >= redraw_time_list_avg)
+        redraw_time.erase(redraw_time.begin());
+    redraw_time.push_back(cur_redraw_time);
+    double avg = 0;
+    for (vector<double>::iterator it = redraw_time.begin(); it != redraw_time.end(); it++)
+        avg += *it;
+    avg /= redraw_time.size();
+    last_fps = 1000 / avg;
 }
 
 void MapGraphics::special_keyevent(int key, int x, int y)
@@ -498,6 +559,9 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     mgptr = this;
     
     show_rtree = 0;
+    last_fps = 0;
+    last_operation_time = 0;
+    msg = "Welcome to ZBY's Map";
     mo->query_description = L"No Query";
     mo->clear_all();
     window_width = initial_window_height * md->map_ratio;
