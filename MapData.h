@@ -6,6 +6,7 @@
 #include "MapLevel.h"
 #include "MapWayType.h"
 #include "MapDict.h"
+#include "MapSpecialTag.h"
 #include <vector>
 #include <map>
 
@@ -17,6 +18,9 @@ class MapData {
     std::vector<std::vector<MapLine *> > ll; // line list by level
     std::vector<MapWay *> wl;
     std::vector<MapRelation *> rl;
+    
+    std::vector<std::vector<MapNode *> > ntl; // list of nodes with tag, ntl[tagid][node]
+    std::vector<std::vector<MapWay *> > wtl; // list of ways with tag
     
     std::map<LL, MapNode *> nm; // m: map from id to object pointer
     std::map<LL, MapWay *> wm;
@@ -32,7 +36,11 @@ class MapData {
     
     MapLevel ml;
     MapWayType wt;
+    MapSpecialTag mt;
+
     MapRTree<MapLine *> *lrt;
+    MapRTree<MapNode *> *ntrt; // r-tree of node tag
+    MapRTree<MapWay *> *wtrt; // r-tree of way tag
 
     double dfactor; // display factor
     double line_detail_dist_low_limit_factor;
@@ -49,13 +57,18 @@ class MapData {
     double max_geo_error;
     
     ~MapData();
+    
     void insert(MapNode *node);
     void insert(MapWay *way);
     void insert(MapRelation *rela);
+    void insert_with_tag(MapNode *node, int tagid);
+    void insert_with_tag(MapWay *way, int tagid);
     void set_coord_limit(double minlat, double maxlat, double minlon, double maxlon);
     void set_node_coord_by_geo(MapNode *node, double lat, double lon);
     MapNode *get_node_by_id(LL id);
-    void construct();
+    
+    void prepare(); // prepare for reading data
+    void construct(); // construct after reading data
     void print_stat();
 };
 

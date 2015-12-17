@@ -6,6 +6,63 @@
 
 using namespace std;
 
+void MapOperation::query_tag_with_filter(const string &tag, const MapRect &baserect,
+          bool (MapOperation::*node_filter)(MapNode *),
+          bool (MapOperation::*way_filter)(MapWay *))
+{
+    clear_results();
+    int tagid = md->mt.query(tag);
+    if (tagid >= 0) {
+        vector<MapNode *> nr;
+        vector<MapWay *> wr;
+        md->ntrt[tagid].find(nr, baserect);
+        md->wtrt[tagid].find(wr, baserect);
+        for (vector<MapNode *>::iterator nit = nr.begin(); nit != nr.end(); nit++)
+            if ((this->*node_filter)(*nit)) nresult.push_back(*nit);
+        for (vector<MapWay *>::iterator wit = wr.begin(); wit != wr.end(); wit++)
+            if ((this->*way_filter)(*wit)) wresult.push_back(*wit);
+    } else {
+        printf("invalid tag %s\n", tag.c_str());
+    }
+    
+    select_results();
+    show_results();
+}
+
+bool MapOperation::poly_node_filter(MapNode *node) { return point_in_poly(MapPoint(node->x, node->y), pvl) != 0; }
+bool MapOperation::poly_way_filter(MapWay *way)
+{
+    for (vector<MapNode *>::iterator nit = way->nl[0].begin(); nit != way->nl[0].end(); nit++) {
+        MapNode *node = *nit;
+        if (point_in_poly(MapPoint(node->x, node->y), pvl))
+            return true;
+    }
+    return false;
+}
+
+void MapOperation::query_tag_with_poly()
+{
+    if (pvl.size() < 3) {
+        printf("no polygon\n");
+        return;
+    }
+    mgui->prepare_inputbox();
+    mgui->set_inputbox_title(L"Query objects in polygon by tag");
+    mgui->set_inputbox_description(L"Tag Name");
+    wstring uinput = mgui->show_inputbox();
+    if (uinput.length() == 0) return;
+    const wchar_t *wstr = uinput.c_str();
+    query_description = L"  Query in polygon by tag: " + uinput;
+    string tag = ws2s(wstr);
+    
+    assert(pvl.size() >= 3);
+    MapRect base = pvl.front().get_rect();
+    for (vector<MapPoint>::iterator it = ++pvl.begin(); it != pvl.end(); it++)
+        base.merge(it->get_rect());
+    
+    query_tag_with_filter(tag, base, &MapOperation::poly_node_filter, &MapOperation::poly_way_filter);
+}
+
 void MapOperation::query_name()
 {
     mgui->prepare_inputbox();
@@ -14,30 +71,35 @@ void MapOperation::query_name()
     wstring uinput = mgui->show_inputbox();
     if (uinput.length() == 0) return;
     const wchar_t *wstr = uinput.c_str();
-    query_description = L"Query by name: " + uinput;
+    query_description = L"  Query by name: " + uinput;
     
-    nresult.clear();
-    wresult.clear();
+    clear_results();
     TIMING ("query by name", {
         md->nd.find(nresult, wstr);
         md->wd.find(wresult, wstr);
     })
+    
+    select_results();
+    show_results();
+}
+
+void MapOperation::select_results()
+{
+    clear_select();
     for (int i = 0; i < MAX_KBDNUM; i++) {
         if (i < (LL) nresult.size()) nnode[i] = nresult[i];
         if (i < (LL) wresult.size()) nway[i] = wresult[i];
     }
-    
-    show_results();
 }
 
 void MapOperation::show_results()
 {
     char buf[MAXLINE];
     mgui->prepare_msgbox();
-    mgui->set_msgbox_title(L"Query esult");
+    mgui->set_msgbox_title(L"Query result");
     mgui->set_msgbox_description(L"Here are query results:");
     mgui->set_msgbox_append(L"== Query ==");
-    mgui->set_msgbox_append(s2ws("  ") + query_description);
+    mgui->set_msgbox_append(query_description);
     mgui->set_msgbox_append(L"");
     
     for (vector<MapNode *>::iterator it = nresult.begin(); it != nresult.end(); it++) {
@@ -63,14 +125,22 @@ void MapOperation::show_results()
     mgui->show_msgbox();
 }
 
+void MapOperation::clear_results()
+{
+    nresult.clear();
+    wresult.clear();
+}
+
 void MapOperation::show_wayinfo()
 {
     if (sway) {
         char buf[MAXLINE];
         mgui->prepare_msgbox();
         mgui->set_msgbox_title(s2ws("Way Information"));
-        sprintf(buf, "Here is information about way %lld", sway->id);
+        sprintf(buf, "Here is information about way #%lld", sway->id);
         mgui->set_msgbox_description(s2ws(string(buf)));
+        sprintf(buf, "[id] #%lld", sway->id);
+        mgui->set_msgbox_append(s2ws(string(buf)));
         
         // way names
         for (map<string, const wchar_t *>::iterator it = sway->names.begin(); it != sway->names.end(); it++) {
@@ -113,6 +183,11 @@ void MapOperation::show_wayinfo()
                 sprintf(buf, "[area] %.2f m2", way_area);
             mgui->set_msgbox_append(s2ws(string(buf)));
         }
+        
+        // way tags
+        for (vector<wstring>::iterator it = sway->taglist.begin(); it != sway->taglist.end(); it++) {
+            mgui->set_msgbox_append(L"[tag] " + *it);
+        }
         mgui->show_msgbox();
     }
 }
@@ -123,8 +198,10 @@ void MapOperation::show_nodeinfo()
         char buf[MAXLINE];
         mgui->prepare_msgbox();
         mgui->set_msgbox_title(s2ws("Node Information"));
-        sprintf(buf, "Here is information about node %lld", snode->id);
+        sprintf(buf, "Here is information about node #%lld", snode->id);
         mgui->set_msgbox_description(s2ws(string(buf)));
+        sprintf(buf, "[id] #%lld", snode->id);
+        mgui->set_msgbox_append(s2ws(string(buf)));
         
         // node names
         for (map<string, const wchar_t *>::iterator it = snode->names.begin(); it != snode->names.end(); it++) {
@@ -134,6 +211,11 @@ void MapOperation::show_nodeinfo()
         // node coord
         sprintf(buf, "[coord] lat=%f lon=%f", snode->lat, snode->lon);
         mgui->set_msgbox_append(s2ws(string(buf)));
+        
+        // node tags
+        for (vector<wstring>::iterator it = snode->taglist.begin(); it != snode->taglist.end(); it++) {
+            mgui->set_msgbox_append(L"[tag] " + *it);
+        }
         
         mgui->show_msgbox();
     }
@@ -201,6 +283,16 @@ void MapOperation::number_way()
     nway[mg->kbd_num] = sway;
 }
 
+void MapOperation::add_polyvertex() { pvl.push_back(MapPoint(mg->mx, mg->my)); }
+void MapOperation::clear_polyvertex() { pvl.clear(); }
+
+void MapOperation::clear_all()
+{
+    clear_results();
+    clear_select();
+    clear_polyvertex();
+}
+
 void MapOperation::operation(MapOperationCode op)
 {
     assert(md);
@@ -229,10 +321,13 @@ void MapOperation::operation(MapOperationCode op)
             case SELECT_POINT: select_point(); break;
             case NUMBER_POINT: number_point(); break;
             case NUMBER_WAY: number_way(); break;
-            case CLEAR_SELECT: clear_select(); break;
+            case CLEAR_ALL: clear_all(); break;
             case SHOW_NODEINFO: show_nodeinfo(); break;
             case SHOW_WAYINFO: show_wayinfo(); break;
             case SHOW_QUERY_RESULT: show_results(); break;
+            case ADD_POLYVERTEX: add_polyvertex(); break;
+            case CLEAR_POLYVERTEX: clear_polyvertex(); break;
+            case QUERY_TAG_WITH_POLY: query_tag_with_poly(); break;
             default: assert(0); break;
         }
     }

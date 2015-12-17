@@ -15,6 +15,13 @@ void MapObject::set_id(LL id) { MapObject::id = id; }
 /* MapNode */
 //MapObject::ObjectType MapNode::type() { return NODE; }
 //MapPoint MapNode::get_point() { return MapPoint(x, y); }
+MapRect MapNode::get_rect()
+{
+    MapRect ret;
+    ret.left = ret.right = x;
+    ret.bottom = ret.top = y;
+    return ret;
+}
 MapNode::~MapNode()
 {
     for (std::map<std::string, const wchar_t *>::iterator it = names.begin(); it != names.end(); it++)

@@ -51,10 +51,19 @@ int main(int argc, char *argv[])
         md.wt.insert(cfgp.query(buf));
     }
     
+    // load maptag configurations
+    int tot_maptag;
+    tot_maptag = str2LL(cfgp.query("MAPTAG_TOTAL"));
+    for (int tid = 0; tid < tot_maptag; tid++) {
+        char buf[MAXLINE];
+        sprintf(buf, "MAPTAG%d", tid);
+        md.mt.insert(cfgp.query(buf));
+    }
     
+    md.prepare();
     
     xmlldr.target(&md);
-    xmlldr.load(cfgp.query("MAPDATA"));    
+    xmlldr.load(cfgp.query("MAPDATA"));
     
     md.construct();
     md.print_stat();
@@ -72,7 +81,15 @@ int main(int argc, char *argv[])
     mg.selected_point_rect_size = str2double(cfgp.query("SELECTED_POINT_RECT_SIZE"));
     mg.selected_point_rect_thick = str2double(cfgp.query("SELECTED_POINT_RECT_THICK"));
     mg.selected_way_thick = str2double(cfgp.query("SELECTED_WAY_THICK"));
-    
+    if (sscanf(cfgp.query("POLY_COLOR"), "%f | %f | %f",
+                 &mg.pcolor[0], &mg.pcolor[1], &mg.pcolor[2]) != 3)
+        fail("can't parse pcolor");
+    mg.pthickness = str2double(cfgp.query("POLY_THICK"));
+    if (sscanf(cfgp.query("NODE_RESULT_COLOR"), "%f | %f | %f",
+                 &mg.nrcolor[0], &mg.nrcolor[1], &mg.nrcolor[2]) != 3)
+        fail("can't parse nrcolor");
+    mg.nrsize = str2double(cfgp.query("NODE_RESULT_RECT_SIZE"));
+    mg.nrthick = str2double(cfgp.query("NODE_RESULT_RECT_THICK"));
     
     for (int num = 0; num < MapOperation::MAX_KBDNUM; num++) {
         char buf[MAXLINE];
@@ -86,8 +103,13 @@ int main(int argc, char *argv[])
     mg.target_gui(&mgui);
     mg.target_operation(&mo);
     //HeapProfilerStop();
+    
+    const char *window_title = cfgp.query("TITLE");
+    cfgp.check_not_queried_keys();
+    
     ProfilerStart("pj_cpu");
-    mg.show(cfgp.query("TITLE"), argc, argv); // ui loop, never return
+    
+    mg.show(window_title, argc, argv); // ui loop, never return
     
     assert(0);
     return 0;

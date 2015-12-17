@@ -5,6 +5,8 @@
 #include "str2type.h"
 #include "wstr.h"
 
+using namespace std;
+
 /* use libxml2 to read data */
 
 void MapXMLLoader::print_current_node()
@@ -79,18 +81,22 @@ void MapXMLLoader::process_node()
         if (strcmp(name, "nd") == 0)
             mway_ptr->add_node(md->get_node_by_id(get_LL_attr("ref")));
         else if (strcmp(name, "tag") == 0) {
-            char buf[MAXLINE];
-            if (strcmp(get_string_attr("k", buf, sizeof(buf)), "highway") == 0) {
-                std::string t(buf);
+            char keybuf[MAXLINE];
+            char valbuf[MAXLINE];
+            get_string_attr("k", keybuf, sizeof(keybuf));
+            get_string_attr("v", valbuf, sizeof(valbuf));
+            mway_ptr->taglist.push_back(s2ws(string(keybuf)) + L"/" + s2ws(string(valbuf)));
+            int tagid = md->mt.query(keybuf, valbuf);
+            if (tagid >= 0) md->insert_with_tag(mway_ptr, tagid);
+            if (strcmp(keybuf, "highway") == 0) {
+                string t(keybuf);
                 t += '/';
-                get_string_attr("v", buf, sizeof(buf));
-                t += buf;
+                t += valbuf;
                 mway_ptr->waytype = md->wt.query_id(t);
-            } else if (strncmp(get_string_attr("k", buf, sizeof(buf)), "name", 4) == 0) {
-                std::string keystr(buf);
-                get_string_attr("v", buf, sizeof(buf));
-                wchar_t *wstr = cs2wcs(buf); // alloc memory and convert
-                mway_ptr->names.insert(std::make_pair(keystr, wstr));
+            } else if (strstr(keybuf, "name")) {
+                string keystr(keybuf);
+                wchar_t *wstr = cs2wcs(valbuf); // alloc memory and convert
+                mway_ptr->names.insert(make_pair(keystr, wstr));
                 md->wd.insert(wstr, mway_ptr);
             }
         }
@@ -99,12 +105,17 @@ void MapXMLLoader::process_node()
     if (mnode_ptr && deepth == 2) {
         // process node names
         if (strcmp(name, "tag") == 0) {
-            char buf[MAXLINE];
-            if (strncmp(get_string_attr("k", buf, sizeof(buf)), "name", 4) == 0) {
-                std::string keystr(buf);
-                get_string_attr("v", buf, sizeof(buf));
-                wchar_t *wstr = cs2wcs(buf); // alloc memory and convert
-                mnode_ptr->names.insert(std::make_pair(keystr, wstr));
+            char keybuf[MAXLINE];
+            char valbuf[MAXLINE];
+            get_string_attr("k", keybuf, sizeof(keybuf));
+            get_string_attr("v", valbuf, sizeof(valbuf));
+            mnode_ptr->taglist.push_back(s2ws(string(keybuf)) + L"/" + s2ws(string(valbuf)));
+            int tagid = md->mt.query(keybuf, valbuf);
+            if (tagid >= 0) md->insert_with_tag(mnode_ptr, tagid);
+            if (strstr(keybuf, "name")) {
+                string keystr(keybuf);
+                wchar_t *wstr = cs2wcs(valbuf); // alloc memory and convert
+                mnode_ptr->names.insert(make_pair(keystr, wstr));
                 md->nd.insert(wstr, mnode_ptr);
             }
         }

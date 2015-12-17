@@ -72,6 +72,14 @@ void MapGraphics::set_display_range(double dminx, double dmaxx, double dminy, do
     display_stack.clear();
 }
 
+void MapGraphics::get_display_range(double *minx, double *maxx, double *miny, double *maxy)
+{
+    *minx = MapGraphics::dminx;
+    *miny = MapGraphics::dminy;
+    *maxx = MapGraphics::dmaxx;
+    *maxy = MapGraphics::dmaxy;
+}
+
 void MapGraphics::push_display_range()
 {
     double centerx = dminx + (dmaxx - dminx) / 2;
@@ -204,21 +212,26 @@ void MapGraphics::center_way(MapWay *way)
     }
 }
 
-void MapGraphics::highlight_point(MapNode *node, float color[], float thick)
+void MapGraphics::draw_vertex(double x, double y)
+{
+    glVertex2d(x - dminx, y - dminy);
+}
+
+void MapGraphics::highlight_point(MapNode *node, double size, float color[], float thick)
 {
     double x = node->x, y = node->y;
-    double diff = selected_point_rect_size / 2.0 * (dmaxx - dminx) / window_width;
+    double diff = size / 2.0 * (dmaxx - dminx) / window_width;
     glColor3f(color[0], color[1], color[2]);
     glLineWidth(thick);
     glPointSize(thick);
     glBegin(GL_LINE_LOOP);
-    glVertex2d(x - diff, y - diff);
-    glVertex2d(x - diff, y + diff);
-    glVertex2d(x + diff, y + diff);
-    glVertex2d(x + diff, y - diff);
+    draw_vertex(x - diff, y - diff);
+    draw_vertex(x - diff, y + diff);
+    draw_vertex(x + diff, y + diff);
+    draw_vertex(x + diff, y - diff);
     glEnd();
     glBegin(GL_POINTS);
-    glVertex2d(x, y);
+    draw_vertex(x, y);
     glEnd();
 }
 
@@ -227,7 +240,7 @@ void MapGraphics::draw_way(MapWay *way)
     glBegin(GL_LINE_STRIP);
     for (vector<MapNode *>::iterator nit = way->nl[clvl].begin(); nit != way->nl[clvl].end(); nit++) {
         MapNode *node = *nit;
-        glVertex2d(node->x, node->y);
+        draw_vertex(node->x, node->y);
     }
     glEnd();
 }
@@ -239,7 +252,8 @@ void MapGraphics::redraw()
     
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(dminx, dmaxx, dminy, dmaxy);
+    gluOrtho2D(0, dmaxx - dminx, 0, dmaxy - dminy);
+//    gluOrtho2D(dminx, dmaxx, dminy, dmaxy);
 //    printf("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
 //    printf("disp-res: %f\n", get_display_resolution());
 //    printf("zoom-level: %d\n", zoom_level);
@@ -263,10 +277,10 @@ void MapGraphics::redraw()
         glBegin(GL_QUADS);
         for (vector<MapRect>::iterator rit = rtree_rects.begin(); rit != rtree_rects.end(); rit++) {
             MapRect &rect = *rit;
-            glVertex2d(rect.left, rect.bottom);
-            glVertex2d(rect.right, rect.bottom);
-            glVertex2d(rect.right, rect.top);
-            glVertex2d(rect.left, rect.top);
+            draw_vertex(rect.left, rect.bottom);
+            draw_vertex(rect.right, rect.bottom);
+            draw_vertex(rect.right, rect.top);
+            draw_vertex(rect.left, rect.top);
         }
         glEnd();
     }
@@ -313,24 +327,46 @@ void MapGraphics::redraw()
     for (int num = 0; num < MapOperation::MAX_KBDNUM; num++) {
         MapNode *node = mo->nnode[num];
         if (node) {
-            highlight_point(node, ncolor[num], selected_point_rect_thick);
+            highlight_point(node, selected_point_rect_size, ncolor[num], selected_point_rect_thick);
             if (node == mo->snode) snode_flag = true;
         }
     }
     if (mo->snode && !snode_flag)
-        highlight_point(mo->snode, scolor, selected_point_rect_thick);
+        highlight_point(mo->snode, selected_point_rect_size, scolor, selected_point_rect_thick);
+    for (vector<MapNode *>::iterator nit = mo->nresult.begin(); nit != mo->nresult.end(); nit++) {
+        MapNode *node = *nit;
+        bool nflag = false;
+        for (int num = 0; num < MapOperation::MAX_KBDNUM; num++)
+            if (mo->nnode[num] == node) {
+                nflag = true;
+                break;
+            }
+        if (!nflag) highlight_point(node, nrsize, nrcolor, nrthick);
+    }
+        
+    if (mo->pvl.size() > 1) {
+        glColor3f(pcolor[0], pcolor[1], pcolor[2]);
+        glLineWidth(pthickness);
+        glBegin(GL_LINE_LOOP);
+        for (vector<MapPoint>::iterator it = mo->pvl.begin(); it != mo->pvl.end(); it++) {
+            draw_vertex(it->x, it->y);
+        }
+        glEnd();
+    }
     
     glFlush();
 }
 
 void MapGraphics::special_keyevent(int key, int x, int y)
 {
+    set_mouse_coord(x, y);
     MapOperation::MapOperationCode op;
     switch (key) {
         case GLUT_KEY_F1: op = MapOperation::RESET_VIEW; break;
         case GLUT_KEY_F2: op = MapOperation::TOGGLE_RTREE; break;
         case GLUT_KEY_F3: op = MapOperation::QUERY_NAME; break;
-        case GLUT_KEY_F4: op = MapOperation::CLEAR_SELECT; break;
+        case GLUT_KEY_F4: op = MapOperation::CLEAR_ALL; break;
+        case GLUT_KEY_F5: op = MapOperation::QUERY_TAG_WITH_POLY; break;
         case GLUT_KEY_F8: op = MapOperation::SHOW_QUERY_RESULT; break;
         case GLUT_KEY_F9: op = MapOperation::CENTER_SEL_POINT; break;
         case GLUT_KEY_F10: op = MapOperation::CENTER_SEL_WAY; break;
@@ -349,6 +385,7 @@ void MapGraphics::special_keyevent(int key, int x, int y)
 
 void MapGraphics::keyevent(unsigned char key, int x, int y)
 {
+    set_mouse_coord(x, y);
     MapOperation::MapOperationCode op;
     char kbd_char = key;
     if (isupper(kbd_char)) kbd_char = kbd_char - 'A' + 'a';
@@ -373,7 +410,7 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
             op = MapOperation::NUMBER_POINT;
         else
             op = MapOperation::CENTER_NUM_POINT;
-    } else if (strchr("qwertyuiop", kbd_char)) {
+    } else if (kbd_char && strchr("qwertyuiop", kbd_char)) {
         const char *s = "qwertyuiop";
         kbd_num = strchr(s, kbd_char) - s;
         assert(kbd_num < MapOperation::MAX_KBDNUM);
@@ -384,6 +421,8 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
     } else switch (kbd_char) {
         case '-': case '_' : op = MapOperation::ZOOM_OUT; break;
         case '+': case '=' : op = MapOperation::ZOOM_IN; break;
+        case 'z': op = MapOperation::ADD_POLYVERTEX; break;
+        case 'x': op = MapOperation::CLEAR_POLYVERTEX; break;
         case 'k': op = MapOperation::MOVE_UP; break;
         case 'j': op = MapOperation::MOVE_DOWN; break;
         case 'h': op = MapOperation::MOVE_LEFT; break;
@@ -460,7 +499,7 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     
     show_rtree = 0;
     mo->query_description = L"No Query";
-    mo->clear_select();
+    mo->clear_all();
     window_width = initial_window_height * md->map_ratio;
     window_height = initial_window_height;
     reset_display_range();

@@ -19,21 +19,19 @@ class MapGraphics {
     MapData *md;
     MapGUI *mgui;
     
-/*    // coord is transformed only when drawing
-    void trans_gcoord(double x, double y, double *gx, double *gy);
-    void rtrans_gcoord(double gx, double gy, double *x, double *y);*/
-    
     double get_display_resolution();
     void update_current_display_level();
     int get_display_level_limit();
+    void set_display_range(double dminx, double dmaxx, double dminy, double dmaxy);
     
     void map_operation(MapOperation::MapOperationCode op);
     
     void set_mouse_coord(int x, int y);
     void mouse_event(bool use_last_op, int button, int state, int x, int y);
     
-    void highlight_point(MapNode *node, float color[], float thick);
+    void highlight_point(MapNode *node, double size, float color[], float thick);
     void draw_way(MapWay *way);
+    void draw_vertex(double x, double y);
     
     public:
     std::vector<MapLine *> dll; // draw line list
@@ -44,8 +42,13 @@ class MapGraphics {
     int kbd_num;
     int show_rtree;
     
+    float pcolor[3]; // poly color
+    float pthickness;
     float scolor[3]; // selected color, R, G, B, from 0 to 1
     float ncolor[MapOperation::MAX_KBDNUM][3]; // numbered color
+    float nrcolor[3]; // node result color
+    float nrthick;
+    double nrsize;
     
     int selected_point_rect_size;
     float selected_point_rect_thick;
@@ -60,7 +63,8 @@ class MapGraphics {
     void target_gui(MapGUI *mgui);
     void target_operation(MapOperation *mo);
 
-    void set_display_range(double dminx, double dmaxx, double dminy, double dmaxy);
+    
+    void get_display_range(double *minx, double *maxx, double *miny, double *maxy);
     void push_display_range();
     void pop_display_range();
     void move_display_range(int x, int y);

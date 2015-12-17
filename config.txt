@@ -7,9 +7,9 @@ TITLE=Zby's Map
 // objects with size >= DISPLAY_FACTOR of current display level will be shown, small means detail
 DISPLAY_FACTOR=0.2
 // details with distance lower than LINE_DETAIL_DIST_LOW_LIMIT_FACTOR * res must not be drawn
-LINE_DETAIL_DIST_LOW_LIMIT_FACTOR=0.02
+LINE_DETAIL_DIST_LOW_LIMIT_FACTOR=0.01
 // details with distance higher than LINE_DETAIL_DIST_HIGH_LIMIT_FACTOR * res must be drawn
-LINE_DETAIL_DIST_HIGH_LIMIT_FACTOR=0.08
+LINE_DETAIL_DIST_HIGH_LIMIT_FACTOR=0.03
 // details with higher than LINE_DETAIL_ANGLE_LIMIT degee between lines will be drawn
 LINE_DETAIL_ANGLE_LIMIT=10
 
@@ -35,6 +35,11 @@ SELECTED_COLOR_NUM6=1|1|1
 SELECTED_COLOR_NUM7=1|1|1
 SELECTED_COLOR_NUM8=1|1|1
 SELECTED_COLOR_NUM9=1|1|1
+POLY_COLOR=1|1|1
+POLY_THICK=20
+NODE_RESULT_COLOR=1|1|1
+NODE_RESULT_RECT_SIZE=15
+NODE_RESULT_RECT_THICK=1
 
 // total level count
 LEVEL_TOTAL=4
@@ -67,4 +72,15 @@ WAYTYPE_TYPE7 =highway/secondary       |2    |0   |1   |1   |1
 WAYTYPE_TYPE8 =highway/secondary_link  |1    |0   |1   |1   |1
 WAYTYPE_TYPE9 =highway/tertiary        |1    |1   |1   |0   |1
 WAYTYPE_TYPE10=highway/tertiary_link   |1    |1   |1   |0   |1
+
+
+// total key-tag pairs
+MAPTAG_TOTAL=5
+
+//      typename   |k1/v1             |k2/v2            |k3/v3       |...
+MAPTAG0=food       |amenity/restaurant|amenity/fast_food|amenity/cafe
+MAPTAG1=supermarket|shop/supermarket|shop/mall|shop/department_store|shop/general|shop/kiosk
+MAPTAG2=transport  |public_transport/station|railway/subway_entrance|public_transport/stop_position|railway/station|highway/bus_stop
+MAPTAG3=money      |amenity/bank|amenity/atm
+MAPTAG4=hospital   |amenity/hospital
 

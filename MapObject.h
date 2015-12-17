@@ -35,8 +35,10 @@ class MapNode : public MapObject {
     double lat, lon;
     
     std::map<std::string, const wchar_t *> names;
+    std::vector<std::wstring> taglist;
     //MapPoint get_point();
     //virtual ObjectType type();
+    MapRect get_rect();
     ~MapNode();
 };
 
@@ -48,8 +50,8 @@ class MapWay : public MapObject {
     int level;
     MapRect rect;
     std::vector<std::vector<MapNode *> > nl; // nl: node list
-    
     std::map<std::string, const wchar_t *> names;
+    std::vector<std::wstring> taglist;
     //static bool compare_by_waytype(MapWay *a, MapWay *b); // useful when sorting ways
     void add_node(MapNode *node);
     //void set_level(int level);

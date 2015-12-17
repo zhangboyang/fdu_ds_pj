@@ -22,11 +22,15 @@ MapData::~MapData()
     for (std::vector<MapRelation *>::iterator it = rl.begin(); it != rl.end(); it++)
         delete *it;
     delete[] lrt;
+    delete[] ntrt;
+    delete[] wtrt;
 }
 
 void MapData::insert(MapNode *node) { nl.push_back(node); nm.insert(make_pair(node->id, node)); }
 void MapData::insert(MapWay *way) { wl.push_back(way); wm.insert(make_pair(way->id, way)); }
 void MapData::insert(MapRelation *rela) { rl.push_back(rela); rm.insert(make_pair(rela->id, rela)); }
+void MapData::insert_with_tag(MapNode *node, int tagid) { ntl[tagid].push_back(node); }
+void MapData::insert_with_tag(MapWay *way, int tagid) { wtl[tagid].push_back(way); }
 
 void MapData::set_coord_limit(double minlat, double maxlat, double minlon, double maxlon)
 {
@@ -73,6 +77,12 @@ MapNode *MapData::get_node_by_id(LL id)
     map<LL, MapNode *>::iterator it = nm.find(id);
     if (it == nm.end()) fail("node object %lld not found", id);
     return it->second;
+}
+
+void MapData::prepare()
+{
+    ntl.resize(mt.get_count());
+    wtl.resize(mt.get_count());
 }
 
 void MapData::construct()
@@ -148,9 +158,9 @@ void MapData::construct()
                     else
                         Lflag = true;
                     if (*nit == wnl.back() || // last point must included
-                            dist > high_res ||
-                            (dist > low_res && // distance limit
-                             ang > line_detail_angle_limit * M_PI / 180) // angle limit
+                            dist >= high_res ||
+                            (dist >= low_res && // distance limit
+                             ang >= line_detail_angle_limit / 180.0 * M_PI) // angle limit
                         ) {
                         dist = 0;
                         way->nl[lvl].push_back(node);
@@ -184,14 +194,37 @@ void MapData::construct()
             }
         
         
-        // create r-trees
-        lrt = new MapRTree<MapLine *> [tot_lvl];
-        
         // put lines to r-tree
+        lrt = new MapRTree<MapLine *> [tot_lvl];
         for (int lvl = 0; lvl < tot_lvl; lvl++)
             for (vector<MapLine *>::iterator lit = ll[lvl].begin(); lit != ll[lvl].end(); lit++) {
                 MapLine *line = *lit;
                 lrt[lvl].insert(line);
+            }
+            
+        // unique ntl and wtl
+        int tot_tag = ntl.size();
+        for (int tagid = 0; tagid < tot_tag; tagid++) {
+            sort(ntl[tagid].begin(), ntl[tagid].end());
+            ntl[tagid].resize(unique(ntl[tagid].begin(), ntl[tagid].end()) - ntl[tagid].begin());
+            sort(wtl[tagid].begin(), wtl[tagid].end());
+            wtl[tagid].resize(unique(wtl[tagid].begin(), wtl[tagid].end()) - wtl[tagid].begin());
+        }
+        
+        // put ntl and wtl to r-tree
+        assert((int) ntl.size() == tot_tag);
+        assert((int) wtl.size() == tot_tag);
+        ntrt = new MapRTree<MapNode *> [tot_tag];
+        for (int tagid = 0; tagid < tot_tag; tagid++)
+            for (vector<MapNode *>::iterator nit = ntl[tagid].begin(); nit != ntl[tagid].end(); nit++) {
+                MapNode *node = *nit;
+                ntrt[tagid].insert(node);
+            }
+        wtrt = new MapRTree<MapWay *> [tot_tag];
+        for (int tagid = 0; tagid < tot_tag; tagid++)
+            for (vector<MapWay *>::iterator wit = wtl[tagid].begin(); wit != wtl[tagid].end(); wit++) {
+                MapWay *way = *wit;
+                wtrt[tagid].insert(way);
             }
         
         // construct dict

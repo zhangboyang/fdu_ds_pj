@@ -14,7 +14,8 @@ void MapWayType::insert(const char *str)
     while (*ptr && *ptr != '|' && !isspace(*ptr)) ptr++;
     std::string key(str, ptr - str);
     assert(name2id.find(key) == name2id.end());
-    name2id.insert(make_pair(key, id));
+    if (!name2id.insert(make_pair(key, id)).second)
+        fail("duplicate waytype %s\n", key.c_str());
 }
 
 int MapWayType::query_id(const std::string &name)

@@ -25,12 +25,15 @@ class MapDict {
         typename std::vector<kvpair>::iterator it;
         it = std::lower_bound(dict.begin(), dict.end(), kvpair(wstr, NULL));
         int cnt = 0;
+        int begin = result.size();
         while (it != dict.end()) {
             if (!it->is_prefix(wstr)) break;
             if (limit >= 0 && ++cnt > limit) break;
             result.push_back(it->value);
             it++;
         }
+        std::sort(result.begin() + begin, result.end());
+        result.resize(std::unique(result.begin() + begin, result.end()) - (result.begin() + begin));
     }
     void find(std::vector<TP> &result, const wchar_t *wstr) { find(result, wstr, -1); }
 };
