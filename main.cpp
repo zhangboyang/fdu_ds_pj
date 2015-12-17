@@ -4,6 +4,7 @@
 #include "MapXMLLoader.h"
 #include "MapData.h"
 #include "MapGraphics.h"
+#include "MapOperation.h"
 #include "MapGUI.h"
 #include "str2type.h"
 #include "wstr.h"
@@ -16,6 +17,7 @@ static MapData md;
 static MapXMLLoader xmlldr;
 static MapGraphics mg;
 static MapGUI mgui;
+static MapOperation mo;
 
 int main(int argc, char *argv[])
 {
@@ -72,7 +74,7 @@ int main(int argc, char *argv[])
     mg.selected_way_thick = str2double(cfgp.query("SELECTED_WAY_THICK"));
     
     
-    for (int num = 0; num < MapGraphics::NUM_MAX; num++) {
+    for (int num = 0; num < MapOperation::MAX_KBDNUM; num++) {
         char buf[MAXLINE];
         sprintf(buf, "SELECTED_COLOR_NUM%d", num);
         if (sscanf(cfgp.query(buf), "%f | %f | %f",
@@ -82,6 +84,7 @@ int main(int argc, char *argv[])
     
     mg.target(&md);
     mg.target_gui(&mgui);
+    mg.target_operation(&mo);
     //HeapProfilerStop();
     ProfilerStart("pj_cpu");
     mg.show(cfgp.query("TITLE"), argc, argv); // ui loop, never return
