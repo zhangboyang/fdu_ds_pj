@@ -15,12 +15,19 @@ class MapOperation {
     private:
     double qtime; // query time
     clock_t qclock; // start clock
+    double nearby_distsq;
+    MapPoint nearby_center;
     
     void query_tag_with_filter(const std::string &tag, const MapRect &baserect,
           bool (MapOperation::*node_filter)(MapNode *),
           bool (MapOperation::*way_filter)(MapWay *));
     bool poly_node_filter(MapNode *node);
     bool poly_way_filter(MapWay *way);
+    bool dist_node_filter(MapNode *node);
+    bool dist_way_filter(MapWay *way);
+    bool true_node_filter(MapNode *node); // always return true
+    bool true_way_filter(MapWay *way);
+    
     void add_polyvertex();
     void clear_polyvertex();
     void select_results();
@@ -36,6 +43,9 @@ class MapOperation {
     void show_wayinfo();
     void show_nodeinfo();
     void query_tag_with_poly();
+    void query_tag_with_dist();
+    void query_tag_in_display();
+    void query_tag();
     
     void query_timer_start();
     void query_timer_stop();
@@ -64,7 +74,7 @@ class MapOperation {
         SHOW_QUERY_RESULT,
         ADD_POLYVERTEX,
         CLEAR_POLYVERTEX,
-        QUERY_TAG_WITH_POLY,
+        QUERY_TAG,
     };
 
     MapData *md;

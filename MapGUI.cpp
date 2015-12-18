@@ -75,7 +75,6 @@ class MapInputBoxApp: public wxApp {
     virtual bool OnInit()
     {
         InputBox_Text = wxGetTextFromUser(InputBox_Description, InputBox_Title, InputBox_Text, NULL);
-        printf("haha!\n");
         return true;
     }
 };

@@ -18,7 +18,6 @@ void MapOperation::query_tag_with_filter(const string &tag, const MapRect &baser
           bool (MapOperation::*node_filter)(MapNode *),
           bool (MapOperation::*way_filter)(MapWay *))
 {
-    clear_results();
     int tagid = md->mt.query(tag);
     if (tagid >= 0) {
         vector<MapNode *> nr;
@@ -53,15 +52,13 @@ bool MapOperation::poly_way_filter(MapWay *way)
 
 void MapOperation::query_tag_with_poly()
 {
-    if (pvl.size() < 3) {
-        mg->msg.append("ERROR:\n  No polygon selected.\n");
-        return;
-    }
+    assert(pvl.size() >= 3);
     mgui->prepare_inputbox();
     mgui->set_inputbox_title(L"Query objects in polygon by tag");
     mgui->set_inputbox_description(L"Tag Name");
     wstring uinput = mgui->show_inputbox();
     if (uinput.length() == 0) return;
+    clear_results();
     const wchar_t *wstr = uinput.c_str();
     query_description = L"  Query in polygon by tag: " + uinput;
     string tag = ws2s(wstr);
@@ -72,6 +69,75 @@ void MapOperation::query_tag_with_poly()
         base.merge(it->get_rect());
     
     query_tag_with_filter(tag, base, &MapOperation::poly_node_filter, &MapOperation::poly_way_filter);
+}
+
+bool MapOperation::dist_node_filter(MapNode *node) { return lensq(MapPoint(node->x, node->y) - nearby_center) <= nearby_distsq; }
+bool MapOperation::dist_way_filter(MapWay *way)
+{
+    for (vector<MapNode *>::iterator nit = way->nl[0].begin(); nit != way->nl[0].end(); nit++) {
+        MapNode *node = *nit;
+        if (lensq(MapPoint(node->x, node->y) - nearby_center) <= nearby_distsq)
+            return true;
+    }
+    return false;
+}
+
+void MapOperation::query_tag_with_dist()
+{
+    assert(pvl.size() == 2);
+    mgui->prepare_inputbox();
+    mgui->set_inputbox_title(L"Query nearby objects by tag");
+    mgui->set_inputbox_description(L"Tag Name");
+    wstring uinput = mgui->show_inputbox();
+    if (uinput.length() == 0) return;
+    clear_results();
+    const wchar_t *wstr = uinput.c_str();
+    query_description = L"  Query nearby objects by tag: " + uinput;
+    string tag = ws2s(wstr);
+    
+    assert(pvl.size() == 2);
+    MapRect base = pvl.front().get_rect();
+    MapPoint A(pvl.front().x, pvl.front().y);
+    MapPoint B(pvl.back().x, pvl.back().y);
+    nearby_center = A;
+    nearby_distsq = lensq(B - A);
+    double nearby_dist = sqrt(nearby_distsq);
+    base.left -= nearby_dist;
+    base.right += nearby_dist;
+    base.top += nearby_dist;
+    base.bottom -= nearby_dist;
+    
+    query_tag_with_filter(tag, base, &MapOperation::dist_node_filter, &MapOperation::dist_way_filter);
+}
+
+
+bool MapOperation::true_node_filter(MapNode *node) { return true; }
+bool MapOperation::true_way_filter(MapWay *way) { return true; }
+
+void MapOperation::query_tag_in_display()
+{
+    mgui->prepare_inputbox();
+    mgui->set_inputbox_title(L"Query objects in sight by tag");
+    mgui->set_inputbox_description(L"Tag Name");
+    wstring uinput = mgui->show_inputbox();
+    if (uinput.length() == 0) return;
+    clear_results();
+    const wchar_t *wstr = uinput.c_str();
+    query_description = L"  Query objects in sight by tag: " + uinput;
+    string tag = ws2s(wstr);
+    
+    double dminx, dminy, dmaxx, dmaxy;
+    mg->get_display_range(&dminx, &dmaxx, &dminy, &dmaxy);
+    MapRect base = MapRect(dminx, dmaxx, dminy, dmaxy);
+    
+    query_tag_with_filter(tag, base, &MapOperation::true_node_filter, &MapOperation::true_way_filter);
+}
+
+void MapOperation::query_tag()
+{
+    if (pvl.size() == 2) query_tag_with_dist();
+    else if (pvl.size() >= 3) query_tag_with_poly();
+    else query_tag_in_display();
 }
 
 void MapOperation::query_name()
@@ -305,7 +371,7 @@ void MapOperation::operation(MapOperationCode op)
     assert(mg);
     assert(mgui);
     mg->msg.clear();
-    mg->msg.append("Hello World!\n");
+//    mg->msg.append("Hello World!\n");
     if (op == POP_DISPLAY) {
         mg->pop_display_range();
     } else {
@@ -335,7 +401,7 @@ void MapOperation::operation(MapOperationCode op)
             case SHOW_QUERY_RESULT: show_results(); break;
             case ADD_POLYVERTEX: add_polyvertex(); break;
             case CLEAR_POLYVERTEX: clear_polyvertex(); break;
-            case QUERY_TAG_WITH_POLY: query_tag_with_poly(); break;
+            case QUERY_TAG: query_tag(); break;
             default: assert(0); break;
         }
     }

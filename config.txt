@@ -1,5 +1,5 @@
 // map data
-MAPDATA=../data/shanghai_map.xml
+MAPDATA=../data/beijing_map.xml
 
 // title of main window
 TITLE=Zby's Map
@@ -37,7 +37,7 @@ SELECTED_COLOR_NUM8=1|1|1
 SELECTED_COLOR_NUM9=1|1|1
 POLY_COLOR=1|1|1
 POLY_THICK=20
-NODE_RESULT_COLOR=1|1|1
+NODE_RESULT_COLOR=1|1|0
 NODE_RESULT_RECT_SIZE=15
 NODE_RESULT_RECT_THICK=1
 

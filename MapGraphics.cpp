@@ -304,11 +304,11 @@ void MapGraphics::redraw()
 //    printf("zoom-level: %d\n", zoom_level);
     
     update_current_display_level();
-    printd("current display level: %d\n", clvl);
+    //printd("current display level: %d\n", clvl);
     
     dll.clear();
     md->lrt[clvl].find(dll, MapRect(dminx, dmaxx, dminy, dmaxy));
-    printd("r-tree result lines: %lld\n", (LL) dll.size());
+    //printd("r-tree result lines: %lld\n", (LL) dll.size());
 
     // draw r-tree rectangles
 
@@ -342,7 +342,7 @@ void MapGraphics::redraw()
         MapWay *way = (*lit)->way;
         if (wayset.insert(way).second) dwl.push_back(way);
     }*/
-    printd("need to draw %lld ways\n", (LL) dwl.size());
+    //printd("need to draw %lld ways\n", (LL) dwl.size());
     
     bool sway_flag = false;
     for (int num = 0; num < MapOperation::MAX_KBDNUM; num++) {
@@ -437,7 +437,7 @@ void MapGraphics::special_keyevent(int key, int x, int y)
         case GLUT_KEY_F2: op = MapOperation::TOGGLE_RTREE; break;
         case GLUT_KEY_F3: op = MapOperation::QUERY_NAME; break;
         case GLUT_KEY_F4: op = MapOperation::CLEAR_ALL; break;
-        case GLUT_KEY_F5: op = MapOperation::QUERY_TAG_WITH_POLY; break;
+        case GLUT_KEY_F5: op = MapOperation::QUERY_TAG; break;
         case GLUT_KEY_F8: op = MapOperation::SHOW_QUERY_RESULT; break;
         case GLUT_KEY_F9: op = MapOperation::CENTER_SEL_POINT; break;
         case GLUT_KEY_F10: op = MapOperation::CENTER_SEL_WAY; break;
