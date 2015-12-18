@@ -1,7 +1,6 @@
 #ifndef ZBY_MAPOPERATION_H
 #define ZBY_MAPOPERATION_H
 #include "common.h"
-#include <ctime>
 #include <vector>
 #include <string>
 #include "MapData.h"
@@ -14,7 +13,7 @@ class MapGraphics;
 class MapOperation {
     private:
     double qtime; // query time
-    clock_t qclock; // start clock
+    double qclock; // start clock
     double nearby_distsq;
     MapPoint nearby_center;
     

@@ -1,5 +1,5 @@
 // map data
-MAPDATA=../data/beijing_map.xml
+MAPDATA=../data/shanghai_map.xml
 
 // title of main window
 TITLE=Zby's Map

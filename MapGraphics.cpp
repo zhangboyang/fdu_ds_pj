@@ -1,7 +1,6 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
-#include <ctime>
 #include <GL/glut.h>
 #include "common.h"
 #include "MapData.h"
@@ -12,6 +11,7 @@
 #include "MapVector.h"
 #include "MapOperation.h"
 #include "printf2str.h"
+#include "myclock.h"
 
 #include <algorithm>
 using namespace std;
@@ -31,11 +31,11 @@ void MapGraphics::target_operation(MapOperation *mo)
 void MapGraphics::map_operation(MapOperation::MapOperationCode op)
 {
     assert(mo);
-    clock_t st_clock, ed_clock;
-    st_clock = clock();
+    double st_clock, ed_clock;
+    st_clock = myclock();
     mo->operation(op);
-    ed_clock = clock();
-    last_operation_time = (double) (ed_clock - st_clock) / CLOCKS_PER_SEC * 1000;
+    ed_clock = myclock();
+    last_operation_time = ed_clock - st_clock;
     glutPostRedisplay();
 }
 
@@ -287,8 +287,8 @@ void MapGraphics::print_string(const char *str)
 
 void MapGraphics::redraw()
 {
-    clock_t st_clock, ed_clock;
-    st_clock = clock();
+    double st_clock, ed_clock;
+    st_clock = myclock();
     vertex_count = 0;
     
     //fflush(stdout);
@@ -298,6 +298,8 @@ void MapGraphics::redraw()
     glLoadIdentity();
     gluOrtho2D(0, dmaxx - dminx, 0, dmaxy - dminy);
     
+    glShadeModel(GL_FLAT);
+    
 //    gluOrtho2D(dminx, dmaxx, dminy, dmaxy);
 //    printf("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
 //    printf("disp-res: %f\n", get_display_resolution());
@@ -305,9 +307,20 @@ void MapGraphics::redraw()
     
     update_current_display_level();
     //printd("current display level: %d\n", clvl);
-    
-    dll.clear();
-    md->lrt[clvl].find(dll, MapRect(dminx, dmaxx, dminy, dmaxy));
+
+    if (rtminx != dminx || rtmaxx != dmaxx ||
+        rtminy != dminy || rtmaxy != dmaxy || dll.empty()) { // need re-query r-tree
+        dll.clear();
+        dwl.clear();
+        md->lrt[clvl].find(dll, MapRect(dminx, dmaxx, dminy, dmaxy));
+        for (vector<MapLine *>::iterator lit = dll.begin(); lit != dll.end(); lit++)
+            dwl.push_back((*lit)->way);
+        sort(dwl.begin(), dwl.end());
+        dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
+        rtminx = dminx; rtmaxx = dmaxx;
+        rtminy = dminy; rtmaxy = dmaxy;
+    }
+
     //printd("r-tree result lines: %lld\n", (LL) dll.size());
 
     // draw r-tree rectangles
@@ -329,12 +342,6 @@ void MapGraphics::redraw()
         }
         glEnd();
     }
-
-    dwl.clear();
-    for (vector<MapLine *>::iterator lit = dll.begin(); lit != dll.end(); lit++)
-        dwl.push_back((*lit)->way);
-    sort(dwl.begin(), dwl.end());
-    dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
     
     /*dwl.clear();
     set<MapWay *> wayset;
@@ -411,9 +418,9 @@ void MapGraphics::redraw()
     glFinish();
     glFlush();
     
-    ed_clock = clock();
+    ed_clock = myclock();
     
-    double cur_redraw_time = (double) (ed_clock - st_clock) / CLOCKS_PER_SEC * 1000;
+    double cur_redraw_time = ed_clock - st_clock;
     double cur_refresh_time = cur_redraw_time + last_operation_time;
     const int refresh_time_list_avg = 10;
     if (refresh_time.size() >= refresh_time_list_avg)

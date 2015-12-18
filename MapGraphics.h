@@ -10,6 +10,7 @@ class MapGraphics {
     private:
     MapOperation::MapOperationCode last_mouse_op;
     
+    double rtminx, rtmaxx, rtminy, rtmaxy;
     double dminx, dmaxx, dminy, dmaxy;
     int window_width, window_height;
     std::vector<std::pair<std::pair<double, double>, int> > display_stack; // ((center_x, center_y), zoom_level)

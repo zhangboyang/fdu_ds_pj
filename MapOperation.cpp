@@ -5,12 +5,13 @@
 #include "MapVector.h"
 #include "wstr.h"
 #include "printf2str.h"
+#include "myclock.h"
 
 using namespace std;
-void MapOperation::query_timer_start() { qclock = clock(); }
+void MapOperation::query_timer_start() { qclock = myclock(); }
 void MapOperation::query_timer_stop()
 {
-    qtime = (double) (clock() - qclock) / CLOCKS_PER_SEC * 1000;
+    qtime = myclock() - qclock;
     mg->msg += printf2str("Query Time = %.2f ms\n", qtime);
 }
 
