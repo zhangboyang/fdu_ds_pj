@@ -7,9 +7,9 @@ TITLE=Zby's Map
 // objects with size >= DISPLAY_FACTOR of current display level will be shown, small means detail
 DISPLAY_FACTOR=0.2
 // details with distance lower than LINE_DETAIL_DIST_LOW_LIMIT_FACTOR * res must not be drawn
-LINE_DETAIL_DIST_LOW_LIMIT_FACTOR=0.01
+LINE_DETAIL_DIST_LOW_LIMIT_FACTOR=0.00
 // details with distance higher than LINE_DETAIL_DIST_HIGH_LIMIT_FACTOR * res must be drawn
-LINE_DETAIL_DIST_HIGH_LIMIT_FACTOR=0.02
+LINE_DETAIL_DIST_HIGH_LIMIT_FACTOR=0.01
 // details with higher than LINE_DETAIL_ANGLE_LIMIT degee between lines will be drawn
 LINE_DETAIL_ANGLE_LIMIT=10
 
@@ -48,7 +48,7 @@ LEVEL_TOTAL=4
 LEVEL_RES0=0
 LEVEL_RES1=0.04
 LEVEL_RES2=0.10
-LEVEL_RES3=0.16
+LEVEL_RES3=0.20
 
 
 // total way type count

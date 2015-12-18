@@ -20,6 +20,17 @@ class MapGraphics {
     MapData *md;
     MapGUI *mgui;
     
+    struct vnode {
+        float x, y;
+        float r, g, b;
+    };
+    unsigned ibuffer, vbuffer;
+    std::vector<vnode> vl;
+    std::vector<unsigned> il;
+    std::map<float, std::pair<std::vector<vnode>, std::vector<unsigned> > > tvil;
+    std::vector<std::pair<float, std::pair<int, int> > > tl;
+    
+    void trans_gcoord(double x, double y, double *gx, double *gy);
     double get_display_resolution();
     void update_current_display_level();
     int get_display_level_limit();
@@ -34,6 +45,7 @@ class MapGraphics {
     void highlight_point(MapNode *node, double size, float color[], float thick);
     void draw_way(MapWay *way);
     void draw_vertex(double x, double y);
+    void put_ways_to_buffer();
 
     std::vector<double> refresh_time; // last redraw time, in ms
     double last_operation_time;

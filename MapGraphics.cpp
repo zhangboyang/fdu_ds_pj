@@ -1,7 +1,8 @@
+#define GL_GLEXT_PROTOTYPES
+#include <GL/glut.h>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
-#include <GL/glut.h>
 #include "common.h"
 #include "MapData.h"
 #include "MapGraphics.h"
@@ -49,12 +50,12 @@ void MapGraphics::update_current_display_level()
     clvl = md->ml.select_level(get_display_resolution());
 }
 
-/*void MapGraphics::trans_gcoord(double x, double y, double *gx, double *gy)
+void MapGraphics::trans_gcoord(double x, double y, double *gx, double *gy)
 {
-    *gx = x - md->minx;
-    *gy = y - md->miny;
+    *gx = x - dminx;
+    *gy = y - dminy;
 }
-
+/*
 void MapGraphics::rtrans_gcoord(double gx, double gy, double *x, double *y)
 {
     *x = gx + md->minx;
@@ -218,7 +219,9 @@ void MapGraphics::center_way(MapWay *way)
 
 void MapGraphics::draw_vertex(double x, double y)
 {
-    glVertex2d(x - dminx, y - dminy);
+    double gx, gy;
+    trans_gcoord(x, y, &gx, &gy);
+    glVertex2d(gx, gy);
     vertex_count++;
 }
 
@@ -285,6 +288,63 @@ void MapGraphics::print_string(const char *str)
             glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *ptr);
 }
 
+void MapGraphics::put_ways_to_buffer()
+{
+    for (map<float, pair<vector<vnode>, vector<unsigned> > >::iterator tvilit = tvil.begin(); tvilit != tvil.end(); tvilit++) {
+        vector<vnode> &tvl = tvilit->second.first;
+        vector<unsigned> &til = tvilit->second.second;
+        tvl.clear();
+        til.clear();
+    }
+    
+    for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
+        MapWay *way = *wit;
+        int last_vn_id = -1;
+        vnode vn;
+        float thickness;
+        md->wt.query_rgbt(way->waytype, &vn.r, &vn.g, &vn.b, &thickness);
+        pair<vector<vnode>, vector<unsigned> > &p = tvil[thickness];
+        for (vector<MapNode *>::iterator nit = way->nl[clvl].begin(); nit != way->nl[clvl].end(); nit++) {
+            MapNode *node = *nit;
+            double gx, gy;
+            trans_gcoord(node->x, node->y, &gx, &gy);
+            vn.x = gx;
+            vn.y = gy;
+            int cur_vn_id = p.first.size();
+            p.first.push_back(vn);
+            if (last_vn_id >= 0) { // need to draw line
+                p.second.push_back(last_vn_id);
+                p.second.push_back(cur_vn_id);
+            }
+            last_vn_id = cur_vn_id;
+        }
+    }
+    
+    vl.clear();
+    il.clear();
+    tl.clear();
+    for (map<float, pair<vector<vnode>, vector<unsigned> > >::iterator tvilit = tvil.begin(); tvilit != tvil.end(); tvilit++) {
+        vector<vnode> &tvl = tvilit->second.first;
+        vector<unsigned> &til = tvilit->second.second;
+        tl.push_back(make_pair(tvilit->first, make_pair((int) il.size(), (int) til.size())));
+        for (vector<unsigned>::iterator tilit = til.begin(); tilit != til.end(); tilit++)
+            il.push_back(*tilit + vl.size());
+        vl.insert(vl.end(), tvl.begin(), tvl.end());
+    }
+    
+    // vertex
+    glBindBuffer(GL_ARRAY_BUFFER, vbuffer);
+    glVertexPointer(2, GL_FLOAT, sizeof(vnode), 0);
+    glColorPointer(3, GL_FLOAT, sizeof(vnode), (const void *) offsetof(vnode, r));
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vnode) * vl.size(), &vl[0], GL_STATIC_DRAW);
+    
+    // indice
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned) * il.size(), &il[0], GL_STATIC_DRAW);
+}
+
 void MapGraphics::redraw()
 {
     double st_clock, ed_clock;
@@ -307,9 +367,12 @@ void MapGraphics::redraw()
     
     update_current_display_level();
     //printd("current display level: %d\n", clvl);
-
+    
+    double rt_reload_time = -1;
     if (rtminx != dminx || rtmaxx != dmaxx ||
-        rtminy != dminy || rtmaxy != dmaxy || dll.empty()) { // need re-query r-tree
+        rtminy != dminy || rtmaxy != dmaxy || dll.empty()) { // need re-query r-tree and reload vertex
+        double rt_st_clock, rt_ed_clock;
+        rt_st_clock = myclock();
         dll.clear();
         dwl.clear();
         md->lrt[clvl].find(dll, MapRect(dminx, dmaxx, dminy, dmaxy));
@@ -319,6 +382,9 @@ void MapGraphics::redraw()
         dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
         rtminx = dminx; rtmaxx = dmaxx;
         rtminy = dminy; rtmaxy = dmaxy;
+        put_ways_to_buffer();
+        rt_ed_clock = myclock();
+        rt_reload_time = rt_ed_clock - rt_st_clock;
     }
 
     //printd("r-tree result lines: %lld\n", (LL) dll.size());
@@ -366,14 +432,23 @@ void MapGraphics::redraw()
         glLineWidth(selected_way_thick);
         draw_way(mo->sway);
     }
-    for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
+    
+    // speed is very important, use glDrawElements() instead of glBegin()...glEnd()
+    //printf("vl=%lld il=%lld\n", (LL) vl.size(), (LL) il.size());
+    for (vector<pair<float, pair<int, int> > >::iterator tlit = tl.begin(); tlit != tl.end(); tlit++) {
+        //printf("thick=%f start=%d count=%d\n", tlit->first, tlit->second.first, tlit->second.second);
+        glLineWidth(tlit->first);
+        glDrawElements(GL_LINES, tlit->second.second, GL_UNSIGNED_INT, (const void *) (tlit->second.first * sizeof(unsigned)));
+    }
+    /*for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) { // speed is important
         MapWay *way = *wit;
         float r, g, b, thickness;
         md->wt.query_rgbt(way->waytype, &r, &g, &b, &thickness);
         glColor3f(r, g, b);
         glLineWidth(thickness);
         draw_way(way);
-    }
+    }*/
+    
     
     bool snode_flag = false;
     for (int num = 0; num < MapOperation::MAX_KBDNUM; num++) {
@@ -407,9 +482,12 @@ void MapGraphics::redraw()
     }
 
     string redraw_str = printf2str(
-        "Level: %d\nWay: %lld\nLine: %lld\nVertex: %d\nOperation: %.2f ms\n",
-        clvl, (LL) dwl.size(), (LL) dll.size(), vertex_count, last_operation_time);
+        "Level: %d\nWay: %lld\nLine: %lld\nVertex: %d+%d\nOperation: %.2f ms\n",
+        clvl, (LL) dwl.size(), (LL) dll.size(), vertex_count, (int) vl.size(), last_operation_time);
     
+    if (rt_reload_time >= 0) { // vertex reloaded
+        msg = printf2str("Vertex Reload: %.2f ms\n", rt_reload_time) + msg;
+    }
     
     print_string(("== Last Frame ==\n" + last_redraw_str +
                   "== This Frame ==\n" + redraw_str +
@@ -597,6 +675,8 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     glutReshapeFunc(reshape_wrapper);
     //glutIdleFunc(redraw_wrapper);
     
+    glGenBuffers(1, &vbuffer);
+    glGenBuffers(1, &ibuffer);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     
     msg = "Welcome to ZBY's Map\n";
