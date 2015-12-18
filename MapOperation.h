@@ -1,6 +1,7 @@
 #ifndef ZBY_MAPOPERATION_H
 #define ZBY_MAPOPERATION_H
 #include "common.h"
+#include <ctime>
 #include <vector>
 #include <string>
 #include "MapData.h"
@@ -12,6 +13,9 @@ class MapGraphics;
 
 class MapOperation {
     private:
+    double qtime; // query time
+    clock_t qclock; // start clock
+    
     void query_tag_with_filter(const std::string &tag, const MapRect &baserect,
           bool (MapOperation::*node_filter)(MapNode *),
           bool (MapOperation::*way_filter)(MapWay *));
@@ -32,6 +36,10 @@ class MapOperation {
     void show_wayinfo();
     void show_nodeinfo();
     void query_tag_with_poly();
+    
+    void query_timer_start();
+    void query_timer_stop();
+    
     public:
     static const int MAX_KBDNUM = 10;
     

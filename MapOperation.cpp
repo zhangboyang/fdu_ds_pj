@@ -4,8 +4,15 @@
 #include "MapGraphics.h"
 #include "MapVector.h"
 #include "wstr.h"
+#include "printf2str.h"
 
 using namespace std;
+void MapOperation::query_timer_start() { qclock = clock(); }
+void MapOperation::query_timer_stop()
+{
+    qtime = (double) (clock() - qclock) / CLOCKS_PER_SEC * 1000;
+    mg->msg += printf2str("Query Time = %.2f ms\n", qtime);
+}
 
 void MapOperation::query_tag_with_filter(const string &tag, const MapRect &baserect,
           bool (MapOperation::*node_filter)(MapNode *),
@@ -16,14 +23,17 @@ void MapOperation::query_tag_with_filter(const string &tag, const MapRect &baser
     if (tagid >= 0) {
         vector<MapNode *> nr;
         vector<MapWay *> wr;
+        query_timer_start();
         md->ntrt[tagid].find(nr, baserect);
         md->wtrt[tagid].find(wr, baserect);
         for (vector<MapNode *>::iterator nit = nr.begin(); nit != nr.end(); nit++)
             if ((this->*node_filter)(*nit)) nresult.push_back(*nit);
         for (vector<MapWay *>::iterator wit = wr.begin(); wit != wr.end(); wit++)
             if ((this->*way_filter)(*wit)) wresult.push_back(*wit);
+        query_timer_stop();
     } else {
-        printf("invalid tag %s\n", tag.c_str());
+        mg->msg.append(printf2str("ERROR:\n  Invalid tag \"%s\".\n", tag.c_str()));
+        return;
     }
     
     select_results();
@@ -44,7 +54,7 @@ bool MapOperation::poly_way_filter(MapWay *way)
 void MapOperation::query_tag_with_poly()
 {
     if (pvl.size() < 3) {
-        printf("no polygon\n");
+        mg->msg.append("ERROR:\n  No polygon selected.\n");
         return;
     }
     mgui->prepare_inputbox();
@@ -71,14 +81,14 @@ void MapOperation::query_name()
     mgui->set_inputbox_description(L"Query Name");
     wstring uinput = mgui->show_inputbox();
     if (uinput.length() == 0) return;
+    clear_results();
     const wchar_t *wstr = uinput.c_str();
     query_description = L"  Query by name: " + uinput;
     
-    clear_results();
-    TIMING ("query by name", {
-        md->nd.find(nresult, wstr);
-        md->wd.find(wresult, wstr);
-    })
+    query_timer_start();
+    md->nd.find(nresult, wstr);
+    md->wd.find(wresult, wstr);
+    query_timer_stop();
     
     select_results();
     show_results();
@@ -95,18 +105,17 @@ void MapOperation::select_results()
 
 void MapOperation::show_results()
 {
-    char buf[MAXLINE];
     mgui->prepare_msgbox();
     mgui->set_msgbox_title(L"Query result");
     mgui->set_msgbox_description(L"Here are query results:");
     mgui->set_msgbox_append(L"== Query ==");
     mgui->set_msgbox_append(query_description);
+    mgui->set_msgbox_append(s2ws(printf2str("  Query completed in %.2f ms", qtime)));
     mgui->set_msgbox_append(L"");
     
     for (vector<MapNode *>::iterator it = nresult.begin(); it != nresult.end(); it++) {
         MapNode *node = *it;
-        sprintf(buf, "== Node Result %d : #%lld ==", (int)(it - nresult.begin()), node->id);
-        mgui->set_msgbox_append(s2ws(string(buf)));
+        mgui->set_msgbox_append(s2ws(printf2str("== Node Result %d : #%lld ==", (int)(it - nresult.begin()), node->id)));
         for (map<string, const wchar_t *>::iterator it = node->names.begin(); it != node->names.end(); it++) {
             mgui->set_msgbox_append(L"  [" + s2ws(it->first) + L"] " + wstring(it->second));
         }
@@ -116,8 +125,7 @@ void MapOperation::show_results()
     
     for (vector<MapWay *>::iterator it = wresult.begin(); it != wresult.end(); it++) {
         MapWay *way = *it;
-        sprintf(buf, "== Way Result %d : #%lld ==", (int)(it - wresult.begin()), way->id);
-        mgui->set_msgbox_append(s2ws(string(buf)));
+        mgui->set_msgbox_append(s2ws(printf2str("== Way Result %d : #%lld ==", (int)(it - wresult.begin()), way->id)));
         for (map<string, const wchar_t *>::iterator it = way->names.begin(); it != way->names.end(); it++) {
             mgui->set_msgbox_append(L"  [" + s2ws(it->first) + L"] " + wstring(it->second));
         }
@@ -130,18 +138,17 @@ void MapOperation::clear_results()
 {
     nresult.clear();
     wresult.clear();
+    query_description = L"  No Query";
+    qtime = 0;
 }
 
 void MapOperation::show_wayinfo()
 {
     if (sway) {
-        char buf[MAXLINE];
         mgui->prepare_msgbox();
-        mgui->set_msgbox_title(s2ws("Way Information"));
-        sprintf(buf, "Here is information about way #%lld", sway->id);
-        mgui->set_msgbox_description(s2ws(string(buf)));
-        sprintf(buf, "[id] #%lld", sway->id);
-        mgui->set_msgbox_append(s2ws(string(buf)));
+        mgui->set_msgbox_title(L"Way Information");
+        mgui->set_msgbox_description(s2ws(printf2str("Here is information about way #%lld", sway->id)));
+        mgui->set_msgbox_append(s2ws(printf2str("[id] #%lld", sway->id)));
         
         // way names
         for (map<string, const wchar_t *>::iterator it = sway->names.begin(); it != sway->names.end(); it++) {
@@ -160,11 +167,12 @@ void MapOperation::show_wayinfo()
             A = B;
         }
         way_length *= dist_factor;
+        string lstr;
         if (way_length >= 1e3)
-            sprintf(buf, "[length] %.2f km", way_length * 1e-3);
+            lstr = printf2str("[length] %.2f km", way_length * 1e-3);
         else
-            sprintf(buf, "[length] %.2f m", way_length);
-        mgui->set_msgbox_append(s2ws(string(buf)));
+            lstr = printf2str("[length] %.2f m", way_length);
+        mgui->set_msgbox_append(s2ws(lstr));
         
         // way area
         if (!sway->nl[0].empty() && sway->nl[0].front() == sway->nl[0].back()) {
@@ -178,11 +186,12 @@ void MapOperation::show_wayinfo()
                 A = B;
             }
             way_area = fabs(way_area * sq(dist_factor) / 2);
+            string astr;
             if (way_area >= 1e3)
-                sprintf(buf, "[area] %.3f km2", way_area * 1e-6);
+                astr = printf2str("[area] %.3f km2", way_area * 1e-6);
             else
-                sprintf(buf, "[area] %.2f m2", way_area);
-            mgui->set_msgbox_append(s2ws(string(buf)));
+                astr = printf2str("[area] %.2f m2", way_area);
+            mgui->set_msgbox_append(s2ws(astr));
         }
         
         // way tags
@@ -196,13 +205,10 @@ void MapOperation::show_wayinfo()
 void MapOperation::show_nodeinfo()
 {
     if (snode) {
-        char buf[MAXLINE];
         mgui->prepare_msgbox();
         mgui->set_msgbox_title(s2ws("Node Information"));
-        sprintf(buf, "Here is information about node #%lld", snode->id);
-        mgui->set_msgbox_description(s2ws(string(buf)));
-        sprintf(buf, "[id] #%lld", snode->id);
-        mgui->set_msgbox_append(s2ws(string(buf)));
+        mgui->set_msgbox_description(s2ws(printf2str("Here is information about node #%lld", snode->id)));
+        mgui->set_msgbox_append(s2ws(printf2str("[id] #%lld", snode->id)));
         
         // node names
         for (map<string, const wchar_t *>::iterator it = snode->names.begin(); it != snode->names.end(); it++) {
@@ -210,8 +216,7 @@ void MapOperation::show_nodeinfo()
         }
         
         // node coord
-        sprintf(buf, "[coord] lat=%f lon=%f", snode->lat, snode->lon);
-        mgui->set_msgbox_append(s2ws(string(buf)));
+        mgui->set_msgbox_append(s2ws(printf2str("[coord] lat=%f lon=%f", snode->lat, snode->lon)));
         
         // node tags
         for (vector<wstring>::iterator it = snode->taglist.begin(); it != snode->taglist.end(); it++) {
@@ -299,6 +304,8 @@ void MapOperation::operation(MapOperationCode op)
     assert(md);
     assert(mg);
     assert(mgui);
+    mg->msg.clear();
+    mg->msg.append("Hello World!\n");
     if (op == POP_DISPLAY) {
         mg->pop_display_range();
     } else {
@@ -332,7 +339,5 @@ void MapOperation::operation(MapOperationCode op)
             default: assert(0); break;
         }
     }
-    mg->msg.clear();
-    mg->msg.append("Hello World!");
 }
 

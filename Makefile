@@ -2,7 +2,7 @@ CPP_FILES := $(wildcard *.cpp)
 OBJ_FILES := $(notdir $(CPP_FILES:.cpp=.o))
 
 # useful flags when debugging: -g -O0 -DDEBUG -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC
-CXXFLAGS := $(shell xml2-config --cflags) $(shell wx-config --cxxflags) -Wall -g -O0 -DDEBUG
+CXXFLAGS := $(shell xml2-config --cflags) $(shell wx-config --cxxflags) -Wall -g -O2
 LD_FLAGS := $(CXXFLAGS) -lGL -lGLU -lglut $(shell xml2-config --libs) $(shell wx-config --libs) -lprofiler -ltcmalloc
 CC_FLAGS := -MMD -MP $(CXXFLAGS)
 EXEC_FILE := pj

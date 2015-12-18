@@ -33,12 +33,14 @@ class MapGraphics {
     void highlight_point(MapNode *node, double size, float color[], float thick);
     void draw_way(MapWay *way);
     void draw_vertex(double x, double y);
-    
+
+    std::vector<double> refresh_time; // last redraw time, in ms
+    double last_operation_time;
+    int vertex_count;
+    std::string last_redraw_str;
+        
     public:
     std::string msg;
-    std::vector<double> redraw_time; // last redraw time, in ms
-    double last_operation_time;
-    double last_fps;
     
     std::vector<MapLine *> dll; // draw line list
     std::vector<MapWay *> dwl; // draw way list
