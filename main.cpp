@@ -105,6 +105,10 @@ int main(int argc, char *argv[])
         fail("can't parse nrcolor");
     mg.nrsize = str2double(cfgp.query("NODE_RESULT_RECT_SIZE"));
     mg.nrthick = str2double(cfgp.query("NODE_RESULT_RECT_THICK"));
+    if (sscanf(cfgp.query("WAY_RESULT_COLOR"), "%f | %f | %f",
+                 &mg.wrcolor[0], &mg.wrcolor[1], &mg.wrcolor[2]) != 3)
+        fail("can't parse wrcolor");
+    mg.wrthick = str2double(cfgp.query("WAY_RESULT_THICK"));
     
     for (int num = 0; num < MapOperation::MAX_KBDNUM; num++) {
         char buf[MAXLINE];

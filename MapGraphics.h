@@ -43,7 +43,7 @@ class MapGraphics {
     
     void print_string(const char *str);
     void highlight_point(MapNode *node, double size, float color[], float thick);
-    void draw_way(MapWay *way);
+    void draw_way(MapWay *way, bool force_level = false);
     void draw_vertex(double x, double y);
     void put_ways_to_buffer();
 
@@ -69,6 +69,8 @@ class MapGraphics {
     float ncolor[MapOperation::MAX_KBDNUM][3]; // numbered color
     float nrcolor[3]; // node result color
     float nrthick;
+    float wrcolor[3]; // way result color
+    float wrthick;
     double nrsize;
     
     int selected_point_rect_size;

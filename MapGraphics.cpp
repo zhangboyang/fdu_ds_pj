@@ -243,10 +243,11 @@ void MapGraphics::highlight_point(MapNode *node, double size, float color[], flo
     glEnd();
 }
 
-void MapGraphics::draw_way(MapWay *way)
+void MapGraphics::draw_way(MapWay *way, bool force_level)
 {
+    int lvl = force_level ? 0 : clvl;
     glBegin(GL_LINE_STRIP);
-    for (vector<MapNode *>::iterator nit = way->nl[clvl].begin(); nit != way->nl[clvl].end(); nit++) {
+    for (vector<MapNode *>::iterator nit = way->nl[lvl].begin(); nit != way->nl[lvl].end(); nit++) {
         MapNode *node = *nit;
         draw_vertex(node->x, node->y);
     }
@@ -429,19 +430,12 @@ void MapGraphics::redraw()
             if (way == mo->sway) sway_flag = true;
             glColor3f(ncolor[num][0], ncolor[num][1], ncolor[num][2]);
             glLineWidth(selected_way_thick);
-            draw_way(way);
+            draw_way(way, true);
         }
     }
-    if (mo->sway && !sway_flag) {
-        glColor3f(scolor[0], scolor[1], scolor[2]);
-        glLineWidth(selected_way_thick);
-        draw_way(mo->sway);
-    }
-    
+    // draw normal ways
     // speed is very important, use glDrawElements() instead of glBegin()...glEnd()
-    //printf("vl=%lld il=%lld\n", (LL) vl.size(), (LL) il.size());
     for (vector<pair<float, pair<int, int> > >::iterator tlit = tl.begin(); tlit != tl.end(); tlit++) {
-        //printf("thick=%f start=%d count=%d\n", tlit->first, tlit->second.first, tlit->second.second);
         glLineWidth(tlit->first);
         glDrawElements(GL_LINES, tlit->second.second, GL_UNSIGNED_INT, (const void *) (tlit->second.first * sizeof(unsigned)));
     }
@@ -453,6 +447,27 @@ void MapGraphics::redraw()
         glLineWidth(thickness);
         draw_way(way);
     }*/
+    for (vector<MapWay *>::iterator wit = mo->wresult.begin(); wit != mo->wresult.end(); wit++) {
+        MapWay *way = *wit;
+        bool wflag = false;
+        for (int num = 0; num < MapOperation::MAX_KBDNUM; num++)
+            if (mo->nway[num] == way) {
+                wflag = true;
+                break;
+            }
+        if (!wflag) {
+            glColor3f(wrcolor[0], wrcolor[1], wrcolor[2]);
+            glLineWidth(wrthick);
+            draw_way(way, true);
+        }
+    }
+    if (mo->sway && !sway_flag) {
+        glColor3f(scolor[0], scolor[1], scolor[2]);
+        glLineWidth(selected_way_thick);
+        draw_way(mo->sway, true);
+    }
+    
+
     
     
     bool snode_flag = false;
