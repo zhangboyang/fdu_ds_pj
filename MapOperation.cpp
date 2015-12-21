@@ -204,7 +204,7 @@ void MapOperation::msgbox_append_tags(MapObject *ptr)
 {
     for (vector<pair<string, wstring> >::iterator it = ptr->tl.begin(); it != ptr->tl.end(); it++)
         if (!md->tag_key_is_name(it->first))
-            mgui->set_msgbox_append(L"[tag] k=" + s2ws(it->first) + L" v=" + it->second);
+            mgui->set_msgbox_append(L"[tag/" + s2ws(it->first) + L"] " + it->second);
 }
 
 void MapOperation::msgbox_append_names(MapObject *ptr)

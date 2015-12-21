@@ -33,7 +33,7 @@ void MapData::insert_with_tag(MapNode *node, int tagid) { ntl[tagid].push_back(n
 void MapData::insert_with_tag(MapWay *way, int tagid) { wtl[tagid].push_back(way); }
 bool MapData::tag_key_is_name(const std::string &key)
 {
-    return key.compare(0, 4, "name") == 0 || key.compare(0, 8, "alt_name") == 0 || key.compare(0, 8, "old_name");
+    return key.compare(0, 4, "name") == 0 || key.compare(0, 8, "alt_name") == 0 || key.compare(0, 8, "old_name") == 0;
 }
 
 void MapData::set_coord_limit(double minlat, double maxlat, double minlon, double maxlon)
@@ -99,9 +99,9 @@ void MapData::construct()
     timing_start("mapdata construct");
     
         // clear maps to save memory
-        nm.clear();
-        wm.clear();
-        rm.clear();
+        map<LL, MapNode *>().swap(nm); // use swap() to make sure memory are freed
+        map<LL, MapWay *>().swap(wm);
+        map<LL, MapRelation *>().swap(rm);
         
         // fetch level count
         tot_lvl = ml.get_level_count();
@@ -185,21 +185,21 @@ void MapData::construct()
             for (vector<MapWay *>::iterator wit = wl.begin(); wit != wl.end(); wit++) {
                 MapWay *way = *wit;
                 MapNode *last_node = NULL;
-                MapLine *last_line = NULL;
+                //MapLine *last_line = NULL;
                 for (vector<MapNode *>::iterator nit = way->nl[lvl].begin(); nit != way->nl[lvl].end(); nit++) {
                     MapNode *node = *nit;
                     if (last_node) {
                         MapLine *line = new MapLine;
                         line->set_line(last_node, node);
                         line->set_way(way);
-                        line->prev = last_line;
-                        if (last_line) last_line->next = line;
+                        //line->prev = last_line;
+                        //if (last_line) last_line->next = line;
                         ll[lvl].push_back(line);
-                        last_line = line;
+                        //last_line = line;
                     }
                     last_node = node;
                 }
-                if (last_line) last_line->next = NULL;
+                //if (last_line) last_line->next = NULL;
             }
         
         

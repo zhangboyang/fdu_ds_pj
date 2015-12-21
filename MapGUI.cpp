@@ -16,8 +16,8 @@ enum { ID_BtnOK };
 
 class MapMsgBoxFrame: public wxFrame {
     public:
-    MapMsgBoxFrame(const wxString& title, const wxPoint& pos, const wxSize& size)
-        : wxFrame(NULL, wxID_ANY, title, pos, size)
+    MapMsgBoxFrame(const wxString& title, const wxPoint& pos, const wxSize& size, long style)
+        : wxFrame(NULL, wxID_ANY, title, pos, size, style)
     {
         wxPanel *panel = new wxPanel(this, wxID_ANY);
 
@@ -55,7 +55,8 @@ class MapMsgBoxApp: public wxApp {
     virtual bool OnInit()
     {
         //wxGetTextFromUser("please input", "haha", "hello world", NULL);
-        MapMsgBoxFrame *frame = new MapMsgBoxFrame(MsgBox_Title, wxDefaultPosition, wxSize(500, 500));
+        MapMsgBoxFrame *frame =
+            new MapMsgBoxFrame(MsgBox_Title, wxDefaultPosition, wxSize(500, 500), wxDEFAULT_FRAME_STYLE | wxSTAY_ON_TOP);
         frame->Show( true );
         return true;
     }

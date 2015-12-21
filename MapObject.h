@@ -47,7 +47,7 @@ class MapWay : public MapObject {
 class MapLine : public MapObject {
     public:
     MapNode *p1, *p2; // p1 -> p2
-    MapLine *prev, *next; // pointer to prev and next edge in way FIXME
+//    MapLine *prev, *next; // pointer to prev and next edge in way FIXME
     MapWay *way; // pointer to way
     
     void set_line(MapNode *p1, MapNode *p2);

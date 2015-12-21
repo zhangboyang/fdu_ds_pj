@@ -1,5 +1,5 @@
 // map data
-MAPDATA=../data/beijing_map.xml
+MAPDATA=../data/shanghai_map.xml
 
 // title of main window
 TITLE=Zby's Map
@@ -75,7 +75,7 @@ WAYTYPE_TYPE10=highway/tertiary_link   |1    |1   |1   |0   |1
 
 
 // total key-tag pairs
-MAPTAG_TOTAL=6
+MAPTAG_TOTAL=7
 
 //      typename   |k1/v1             |k2/v2            |k3/v3       |...
 MAPTAG0=food       |amenity/restaurant|amenity/fast_food|amenity/cafe
@@ -84,4 +84,5 @@ MAPTAG2=transport  |public_transport/station|railway/subway_entrance|public_tran
 MAPTAG3=money      |amenity/bank|amenity/atm
 MAPTAG4=hospital   |amenity/hospital
 MAPTAG5=park       |leisure/park
+MAPTAG6=toilet     |amenity/toilets
 

@@ -9,8 +9,15 @@
 #include "str2type.h"
 #include "wstr.h"
 
+//#define ENABLE_HEAP_PROFILE
+#define ENABLE_CPU_PROFILE
+
+#ifdef ENABLE_CPU_PROFILE
 #include <google/profiler.h>
+#endif
+#ifdef ENABLE_HEAP_PROFILE
 #include <google/heap-profiler.h>
+#endif
 
 static ConfigFilePraser cfgp;
 static MapData md;
@@ -24,7 +31,10 @@ int main(int argc, char *argv[])
     setlocale(LC_ALL, "zh_CN.UTF-8");
     
     //int test(); test(); return 0;
-    //HeapProfilerStart("pj_heap");
+    #ifdef ENABLE_HEAP_PROFILE
+    HeapProfilerStart("pj_heap");
+    #endif
+    
     cfgp.load("config.txt");
     // load level configurations
     int tot_lvl;
@@ -64,6 +74,11 @@ int main(int argc, char *argv[])
     
     xmlldr.target(&md);
     xmlldr.load(cfgp.query("MAPDATA"));
+    
+    #ifdef ENABLE_HEAP_PROFILE
+    HeapProfilerDump("xml file loaded");
+    HeapProfilerStop();
+    #endif
     
     md.construct();
     md.print_stat();
@@ -107,8 +122,13 @@ int main(int argc, char *argv[])
     const char *window_title = cfgp.query("TITLE");
     cfgp.check_not_queried_keys();
     
-    //HeapProfilerStop();
+    #ifdef ENABLE_HEAP_PROFILE
+    HeapProfilerDump("construct finished");
+    HeapProfilerStop();
+    #endif
+    #ifdef ENABLE_CPU_PROFILE
     ProfilerStart("pj_cpu");
+    #endif
     
     //fclose(stdout);
     mg.show(window_title, argc, argv); // ui loop, never return
