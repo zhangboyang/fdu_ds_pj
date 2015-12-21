@@ -35,9 +35,6 @@ void MapOperation::query_tag_with_filter(const string &tag, const MapRect &baser
         mg->msg.append(printf2str("ERROR:\n  Invalid tag \"%s\".\n", tag.c_str()));
         return;
     }
-    
-    select_results();
-    show_results();
 }
 
 bool MapOperation::poly_node_filter(MapNode *node) { return point_in_poly(MapPoint(node->x, node->y), pvl) != 0; }
@@ -70,7 +67,12 @@ void MapOperation::query_tag_with_poly()
         base.merge(it->get_rect());
     
     query_tag_with_filter(tag, base, &MapOperation::poly_node_filter, &MapOperation::poly_way_filter);
+    
+    select_results();
+    show_results();
 }
+
+MapPoint MapOperation::nearby_center;
 
 bool MapOperation::dist_node_filter(MapNode *node) { return lensq(MapPoint(node->x, node->y) - nearby_center) <= nearby_distsq; }
 bool MapOperation::dist_way_filter(MapWay *way)
@@ -81,6 +83,25 @@ bool MapOperation::dist_way_filter(MapWay *way)
             return true;
     }
     return false;
+}
+
+bool MapOperation::sort_node_by_dist(MapNode *a, MapNode *b)
+{
+    return lensq(MapPoint(a->x, a->y) - nearby_center) < lensq(MapPoint(b->x, b->y) - nearby_center);
+}
+
+bool MapOperation::sort_way_by_dist(MapWay *a, MapWay *b)
+{
+    double alensq = F_INF, blensq = F_INF;
+    for (vector<MapNode *>::iterator nit = a->nl[0].begin(); nit != a->nl[0].end(); nit++) {
+        MapNode *node = *nit;
+        alensq = min(alensq, lensq(MapPoint(node->x, node->y) - nearby_center));
+    }
+    for (vector<MapNode *>::iterator nit = b->nl[0].begin(); nit != b->nl[0].end(); nit++) {
+        MapNode *node = *nit;
+        blensq = min(blensq, lensq(MapPoint(node->x, node->y) - nearby_center));
+    }
+    return alensq < blensq;
 }
 
 void MapOperation::query_tag_with_dist()
@@ -109,6 +130,12 @@ void MapOperation::query_tag_with_dist()
     base.bottom -= nearby_dist;
     
     query_tag_with_filter(tag, base, &MapOperation::dist_node_filter, &MapOperation::dist_way_filter);
+    
+    sort(nresult.begin(), nresult.end(), sort_node_by_dist);
+    sort(wresult.begin(), wresult.end(), sort_way_by_dist);
+    
+    select_results();
+    show_results();
 }
 
 
@@ -132,6 +159,9 @@ void MapOperation::query_tag_in_display()
     MapRect base = MapRect(dminx, dmaxx, dminy, dmaxy);
     
     query_tag_with_filter(tag, base, &MapOperation::true_node_filter, &MapOperation::true_way_filter);
+    
+    select_results();
+    show_results();
 }
 
 void MapOperation::query_tag()
@@ -170,6 +200,20 @@ void MapOperation::select_results()
     }
 }
 
+void MapOperation::msgbox_append_tags(MapObject *ptr)
+{
+    for (vector<pair<string, wstring> >::iterator it = ptr->tl.begin(); it != ptr->tl.end(); it++)
+        if (!md->tag_key_is_name(it->first))
+            mgui->set_msgbox_append(L"[tag] k=" + s2ws(it->first) + L" v=" + it->second);
+}
+
+void MapOperation::msgbox_append_names(MapObject *ptr)
+{
+    for (vector<pair<string, wstring> >::iterator it = ptr->tl.begin(); it != ptr->tl.end(); it++)
+        if (md->tag_key_is_name(it->first))
+            mgui->set_msgbox_append(L"[" + s2ws(it->first) + L"] " + it->second);
+}
+
 void MapOperation::show_results()
 {
     mgui->prepare_msgbox();
@@ -183,9 +227,8 @@ void MapOperation::show_results()
     for (vector<MapNode *>::iterator it = nresult.begin(); it != nresult.end(); it++) {
         MapNode *node = *it;
         mgui->set_msgbox_append(s2ws(printf2str("== Node Result %d : #%lld ==", (int)(it - nresult.begin()), node->id)));
-        for (map<string, const wchar_t *>::iterator it = node->names.begin(); it != node->names.end(); it++) {
-            mgui->set_msgbox_append(L"  [" + s2ws(it->first) + L"] " + wstring(it->second));
-        }
+        msgbox_append_names((MapObject *) node);
+        msgbox_append_tags((MapObject *) node);
     }
     mgui->set_msgbox_append(L"");
     mgui->set_msgbox_append(L"");
@@ -193,9 +236,8 @@ void MapOperation::show_results()
     for (vector<MapWay *>::iterator it = wresult.begin(); it != wresult.end(); it++) {
         MapWay *way = *it;
         mgui->set_msgbox_append(s2ws(printf2str("== Way Result %d : #%lld ==", (int)(it - wresult.begin()), way->id)));
-        for (map<string, const wchar_t *>::iterator it = way->names.begin(); it != way->names.end(); it++) {
-            mgui->set_msgbox_append(L"  [" + s2ws(it->first) + L"] " + wstring(it->second));
-        }
+        msgbox_append_names((MapObject *) way);
+        msgbox_append_tags((MapObject *) way);
     }
     
     mgui->show_msgbox();
@@ -218,9 +260,7 @@ void MapOperation::show_wayinfo()
         mgui->set_msgbox_append(s2ws(printf2str("[id] #%lld", sway->id)));
         
         // way names
-        for (map<string, const wchar_t *>::iterator it = sway->names.begin(); it != sway->names.end(); it++) {
-            mgui->set_msgbox_append(L"[" + s2ws(it->first) + L"] " + wstring(it->second));
-        }
+        msgbox_append_names((MapObject *) sway);
         
         // way length
         double way_length = 0;
@@ -262,9 +302,8 @@ void MapOperation::show_wayinfo()
         }
         
         // way tags
-        for (vector<wstring>::iterator it = sway->taglist.begin(); it != sway->taglist.end(); it++) {
-            mgui->set_msgbox_append(L"[tag] " + *it);
-        }
+        msgbox_append_tags((MapObject *) sway);
+        
         mgui->show_msgbox();
     }
 }
@@ -275,21 +314,10 @@ void MapOperation::show_nodeinfo()
         mgui->prepare_msgbox();
         mgui->set_msgbox_title(s2ws("Node Information"));
         mgui->set_msgbox_description(s2ws(printf2str("Here is information about node #%lld", snode->id)));
-        mgui->set_msgbox_append(s2ws(printf2str("[id] #%lld", snode->id)));
-        
-        // node names
-        for (map<string, const wchar_t *>::iterator it = snode->names.begin(); it != snode->names.end(); it++) {
-            mgui->set_msgbox_append(L"[" + s2ws(it->first) + L"] " + wstring(it->second));
-        }
-        
-        // node coord
-        mgui->set_msgbox_append(s2ws(printf2str("[coord] lat=%f lon=%f", snode->lat, snode->lon)));
-        
-        // node tags
-        for (vector<wstring>::iterator it = snode->taglist.begin(); it != snode->taglist.end(); it++) {
-            mgui->set_msgbox_append(L"[tag] " + *it);
-        }
-        
+        mgui->set_msgbox_append(s2ws(printf2str("[id] #%lld", snode->id))); // id
+        msgbox_append_names((MapObject *) snode);// node names
+        mgui->set_msgbox_append(s2ws(printf2str("[coord] lat=%f lon=%f", snode->lat, snode->lon))); // node coord
+        msgbox_append_tags((MapObject *) snode); // node tags
         mgui->show_msgbox();
     }
 }

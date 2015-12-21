@@ -9,6 +9,7 @@
 #include "MapSpecialTag.h"
 #include <vector>
 #include <map>
+#include <string>
 
 const double dist_factor = 4.0009e7 / 360; // from lat to meters
 
@@ -66,6 +67,7 @@ class MapData {
     void set_coord_limit(double minlat, double maxlat, double minlon, double maxlon);
     void set_node_coord_by_geo(MapNode *node, double lat, double lon);
     MapNode *get_node_by_id(LL id);
+    bool tag_key_is_name(const std::string &key); // return true is the tag type is name
     
     void prepare(); // prepare for reading data
     void construct(); // construct after reading data

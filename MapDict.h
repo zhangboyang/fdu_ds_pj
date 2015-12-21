@@ -29,7 +29,7 @@ class MapDict {
     void wstr_tolower(wchar_t *wstr) { while (*wstr) *wstr = to_lower(*wstr), wstr++; }
     public:
     ~MapDict() { for (std::vector<wchar_t *>::iterator it = lwstr_list.begin(); it != lwstr_list.end(); it++) free(*it); }
-    void insert(const wchar_t *key, TP value) {
+    void insert(const wchar_t *key, TP value) { // will alloc memory, and never read 'key' later
         wchar_t *lkey = wcsdup(key);
         wstr_tolower(lkey);
         lwstr_list.push_back(lkey);

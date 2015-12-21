@@ -15,7 +15,9 @@ class MapOperation {
     double qtime; // query time
     double qclock; // start clock
     double nearby_distsq;
-    MapPoint nearby_center;
+    static MapPoint nearby_center;
+    static bool sort_node_by_dist(MapNode *a, MapNode *b);
+    static bool sort_way_by_dist(MapWay *a, MapWay *b);
     
     void query_tag_with_filter(const std::string &tag, const MapRect &baserect,
           bool (MapOperation::*node_filter)(MapNode *),
@@ -34,11 +36,13 @@ class MapOperation {
     void clear_select();
     
     void query_name();
-    void show_results();
     void select_way();
     void select_point();
     void number_way();
     void number_point();
+    void show_results();
+    void msgbox_append_tags(MapObject *ptr);
+    void msgbox_append_names(MapObject *ptr);
     void show_wayinfo();
     void show_nodeinfo();
     void query_tag_with_poly();

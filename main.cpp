@@ -102,12 +102,13 @@ int main(int argc, char *argv[])
     mg.target(&md);
     mg.target_gui(&mgui);
     mg.target_operation(&mo);
-    //HeapProfilerStop();
+    
     
     const char *window_title = cfgp.query("TITLE");
     cfgp.check_not_queried_keys();
     
-    ProfilerStart("pj_cpu");
+    //HeapProfilerStop();
+    //ProfilerStart("pj_cpu");
     
     //fclose(stdout);
     mg.show(window_title, argc, argv); // ui loop, never return

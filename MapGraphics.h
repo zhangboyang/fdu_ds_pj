@@ -90,7 +90,7 @@ class MapGraphics {
     void pop_display_range();
     void move_display_range(int x, int y);
     void zoom_display_range(int f);
-    void zoom_display_by_size(double sizex, double sizey);
+    //void zoom_display_by_size(double sizex, double sizey);
     void move_display_to_point(double gx, double gy);
     void reset_display_range();
     void center_way(MapWay *way);

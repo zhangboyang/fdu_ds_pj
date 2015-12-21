@@ -85,7 +85,7 @@ void MapXMLLoader::process_node()
             char valbuf[MAXLINE];
             get_string_attr("k", keybuf, sizeof(keybuf));
             get_string_attr("v", valbuf, sizeof(valbuf));
-            mway_ptr->taglist.push_back(s2ws(string(keybuf)) + L"/" + s2ws(string(valbuf)));
+            mway_ptr->tl.push_back(make_pair(string(keybuf), s2ws(string(valbuf))));
             int tagid = md->mt.query(keybuf, valbuf);
             if (tagid >= 0) md->insert_with_tag(mway_ptr, tagid);
             if (strcmp(keybuf, "highway") == 0) {
@@ -94,10 +94,8 @@ void MapXMLLoader::process_node()
                 t += valbuf;
                 mway_ptr->waytype = md->wt.query_id(t);
             } else if (strstr(keybuf, "name")) {
-                string keystr(keybuf);
-                wchar_t *wstr = cs2wcs(valbuf); // alloc memory and convert
-                mway_ptr->names.insert(make_pair(keystr, wstr));
-                md->wd.insert(wstr, mway_ptr);
+                wstring wstr(s2ws(string(valbuf)));
+                md->wd.insert(wstr.c_str(), mway_ptr);
             }
         }
         return;
@@ -109,14 +107,12 @@ void MapXMLLoader::process_node()
             char valbuf[MAXLINE];
             get_string_attr("k", keybuf, sizeof(keybuf));
             get_string_attr("v", valbuf, sizeof(valbuf));
-            mnode_ptr->taglist.push_back(s2ws(string(keybuf)) + L"/" + s2ws(string(valbuf)));
+            mnode_ptr->tl.push_back(make_pair(string(keybuf), s2ws(string(valbuf))));
             int tagid = md->mt.query(keybuf, valbuf);
             if (tagid >= 0) md->insert_with_tag(mnode_ptr, tagid);
             if (strstr(keybuf, "name")) {
-                string keystr(keybuf);
-                wchar_t *wstr = cs2wcs(valbuf); // alloc memory and convert
-                mnode_ptr->names.insert(make_pair(keystr, wstr));
-                md->nd.insert(wstr, mnode_ptr);
+                wstring wstr(s2ws(string(valbuf)));
+                md->nd.insert(wstr.c_str(), mnode_ptr);
             }
         }
         return;
@@ -165,7 +161,7 @@ void MapXMLLoader::load(const char *fn)
     // this function will load data to md->[nwr]l and md->[nwr]m
     // which will be processed lator by MapData::construct()
     
-    TIMING ("load data from xml", {
+    timing_start("load data from xml");
         rdr = xmlReaderForFile(fn, NULL, 0);
         if (!rdr) fail("can't load '%s'", fn);
         mway_ptr = NULL; // reset temp ptr for process_node()
@@ -178,7 +174,7 @@ void MapXMLLoader::load(const char *fn)
         }
         xmlFreeTextReader(rdr);
         if (ret != 0) fail("failed to parse '%s'", fn);
-    })
+    timing_end();
 }
 
 void MapXMLLoader::target(MapData *md) { MapXMLLoader::md = md; }

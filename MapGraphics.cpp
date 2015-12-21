@@ -142,7 +142,7 @@ void MapGraphics::zoom_display_range(int f)
 }
 
 
-void MapGraphics::zoom_display_by_size(double sizex, double sizey)
+/*void MapGraphics::zoom_display_by_size(double sizex, double sizey)
 {
     sizex /= zoom_bysize_factor;
     sizey /= zoom_bysize_factor;
@@ -164,7 +164,7 @@ void MapGraphics::zoom_display_by_size(double sizex, double sizey)
     
     int f = min(xf, yf);
     zoom_display_range(f);
-}
+}*/
 
 void MapGraphics::move_display_to_point(double gx, double gy)
 {
@@ -213,7 +213,7 @@ void MapGraphics::center_way(MapWay *way)
         x = (rect.left + rect.right) / 2;
         y = (rect.bottom + rect.top) / 2;
         move_display_to_point(x, y);
-        zoom_display_by_size(rect.right - rect.left, rect.top - rect.bottom);
+        //zoom_display_by_size(rect.right - rect.left, rect.top - rect.bottom);
     }
 }
 
@@ -486,7 +486,7 @@ void MapGraphics::redraw()
         clvl, (LL) dwl.size(), (LL) dll.size(), vertex_count, (int) vl.size(), last_operation_time);
     
     if (rt_reload_time >= 0) { // vertex reloaded
-        msg = printf2str("Vertex Reload: %.2f ms\n", rt_reload_time) + msg;
+        redraw_str += printf2str("Vertex Reload: %.2f ms\n", rt_reload_time);
     }
     
     print_string(("== Last Frame ==\n" + last_redraw_str +

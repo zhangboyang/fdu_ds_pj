@@ -9,12 +9,8 @@ using namespace std;
 
 /* MapObject */
 void MapObject::set_id(LL id) { MapObject::id = id; }
-//MapObject::ObjectType MapObject::type() { return NONE; }
-//MapObject::~MapObject() {}
 
 /* MapNode */
-//MapObject::ObjectType MapNode::type() { return NODE; }
-//MapPoint MapNode::get_point() { return MapPoint(x, y); }
 MapRect MapNode::get_rect()
 {
     MapRect ret;
@@ -22,22 +18,14 @@ MapRect MapNode::get_rect()
     ret.bottom = ret.top = y;
     return ret;
 }
-MapNode::~MapNode()
-{
-    for (std::map<std::string, const wchar_t *>::iterator it = names.begin(); it != names.end(); it++)
-        delete[] it->second;
-}
 
 /* MapLine */
+void MapLine::set_way(MapWay *way) { MapLine::way = way; }
 void MapLine::set_line(MapNode *p1, MapNode *p2)
 {
     MapLine::p1 = p1;
     MapLine::p2 = p2;
-    //x1 = p1->x; y1 = p1->y;
-    //x2 = p2->x; y2 = p2->y;
 }
-void MapLine::set_way(MapWay *way) { MapLine::way = way; }
-
 MapRect MapLine::get_rect()
 {
     MapRect ret;
@@ -49,33 +37,10 @@ MapRect MapLine::get_rect()
 }
 
 /* MapWay */
-//MapObject::ObjectType MapWay::type() { return WAY; }
 void MapWay::add_node(MapNode *node) { nl[0].push_back(node); }
 MapRect MapWay::get_rect() { return rect; }
 
-/*void MapWay::get_center(double *x, double *y)
-{
-    MapRect rect = get_rect();
-    *x = (rect.left + rect.right) / 2;
-    *y = (rect.bottom + rect.top) / 2;
-}
+MapWay::MapWay() { nl.resize(1); } // there is at least one map level
 
-void MapWay::get_xysize(double *sizex, double *sizey)
-{
-    MapRect rect = get_rect();
-    *sizex = rect.right - rect.left;
-    *sizey = rect.top - rect.bottom;
-}*/
-
-//bool MapWay::compare_by_waytype(MapWay *a, MapWay *b) { return a->waytype == 0 && a->waytype > b->waytype; }
-//void MapWay::set_level(int level) { MapWay::level = level; }
-MapWay::MapWay() { nl.resize(1); }
-MapWay::~MapWay()
-{
-    for (std::map<std::string, const wchar_t *>::iterator it = names.begin(); it != names.end(); it++)
-        delete[] it->second;
-}
- 
 /* MapRelation */
-//MapObject::ObjectType MapRelation::type() { return RELATION; }
 // FIXME: 'relation' not implemented

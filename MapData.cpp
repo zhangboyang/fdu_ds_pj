@@ -31,6 +31,10 @@ void MapData::insert(MapWay *way) { wl.push_back(way); wm.insert(make_pair(way->
 void MapData::insert(MapRelation *rela) { rl.push_back(rela); rm.insert(make_pair(rela->id, rela)); }
 void MapData::insert_with_tag(MapNode *node, int tagid) { ntl[tagid].push_back(node); }
 void MapData::insert_with_tag(MapWay *way, int tagid) { wtl[tagid].push_back(way); }
+bool MapData::tag_key_is_name(const std::string &key)
+{
+    return key.compare(0, 4, "name") == 0 || key.compare(0, 8, "alt_name") == 0 || key.compare(0, 8, "old_name");
+}
 
 void MapData::set_coord_limit(double minlat, double maxlat, double minlon, double maxlon)
 {
@@ -92,8 +96,13 @@ void MapData::construct()
     //assert(rl.size() > 0 && rl.size() == rm.size());
     assert(ll.size() == 0);
     
-    //TIMING ("mapdata construct", {
+    timing_start("mapdata construct");
     
+        // clear maps to save memory
+        nm.clear();
+        wm.clear();
+        rm.clear();
+        
         // fetch level count
         tot_lvl = ml.get_level_count();
         assert(tot_lvl > 0);
@@ -230,7 +239,8 @@ void MapData::construct()
         // construct dict
         wd.construct();
         nd.construct();
-    //})
+    
+    timing_end();
 }
 
 void MapData::print_stat()
