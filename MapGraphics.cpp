@@ -290,13 +290,8 @@ void MapGraphics::print_string(const char *str)
 
 void MapGraphics::put_ways_to_buffer()
 {
-    for (map<float, pair<vector<vnode>, vector<unsigned> > >::iterator tvilit = tvil.begin(); tvilit != tvil.end(); tvilit++) {
-        vector<vnode> &tvl = tvilit->second.first;
-        vector<unsigned> &til = tvilit->second.second;
-        tvl.clear();
-        til.clear();
-    }
-    
+    int vl_size = 0, il_size = 0;
+    // put vertex and indice to tvil
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
         MapWay *way = *wit;
         int last_vn_id = -1;
@@ -311,17 +306,19 @@ void MapGraphics::put_ways_to_buffer()
             vn.x = gx;
             vn.y = gy;
             int cur_vn_id = p.first.size();
-            p.first.push_back(vn);
+            p.first.push_back(vn); vl_size++;
             if (last_vn_id >= 0) { // need to draw line
                 p.second.push_back(last_vn_id);
                 p.second.push_back(cur_vn_id);
+                il_size++;
             }
             last_vn_id = cur_vn_id;
         }
     }
     
-    vl.clear();
-    il.clear();
+    // construct vl, il, tl
+    vl.clear(); vl.reserve(vl_size);
+    il.clear(); il.reserve(il_size);
     tl.clear();
     for (map<float, pair<vector<vnode>, vector<unsigned> > >::iterator tvilit = tvil.begin(); tvilit != tvil.end(); tvilit++) {
         vector<vnode> &tvl = tvilit->second.first;
@@ -330,6 +327,14 @@ void MapGraphics::put_ways_to_buffer()
         for (vector<unsigned>::iterator tilit = til.begin(); tilit != til.end(); tilit++)
             il.push_back(*tilit + vl.size());
         vl.insert(vl.end(), tvl.begin(), tvl.end());
+    }
+    
+    // clean up tvil
+    for (map<float, pair<vector<vnode>, vector<unsigned> > >::iterator tvilit = tvil.begin(); tvilit != tvil.end(); tvilit++) {
+        vector<vnode> &tvl = tvilit->second.first;
+        vector<unsigned> &til = tvilit->second.second;
+        tvl.clear();
+        til.clear();
     }
     
     // vertex

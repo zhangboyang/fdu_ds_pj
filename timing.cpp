@@ -16,7 +16,7 @@ void timing_start(const char *comment)
 void timing_end()
 {
     ed = clock();
-    last_comment = NULL;
     double t = (double) (ed - st) / CLOCKS_PER_SEC * 1000;
     printf("%s: %.2f ms\n", last_comment, t);
+    last_comment = NULL;
 }

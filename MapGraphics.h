@@ -24,11 +24,11 @@ class MapGraphics {
         float x, y;
         float r, g, b;
     };
-    unsigned ibuffer, vbuffer;
-    std::vector<vnode> vl;
-    std::vector<unsigned> il;
-    std::map<float, std::pair<std::vector<vnode>, std::vector<unsigned> > > tvil;
-    std::vector<std::pair<float, std::pair<int, int> > > tl;
+    unsigned ibuffer, vbuffer; // gl buffers
+    std::map<float, std::pair<std::vector<vnode>, std::vector<unsigned> > > tvil; // thickness map
+    std::vector<vnode> vl; // vertex list
+    std::vector<unsigned> il; // indice list
+    std::vector<std::pair<float, std::pair<int, int> > > tl; // <thickness, <offset, size> >, used when drawing
     
     void trans_gcoord(double x, double y, double *gx, double *gy);
     double get_display_resolution();

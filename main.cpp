@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     cfgp.check_not_queried_keys();
     
     //HeapProfilerStop();
-    //ProfilerStart("pj_cpu");
+    ProfilerStart("pj_cpu");
     
     //fclose(stdout);
     mg.show(window_title, argc, argv); // ui loop, never return

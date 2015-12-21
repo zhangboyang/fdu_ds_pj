@@ -8,7 +8,7 @@
 #include <vector>
 
 #ifdef DEBUG
-//#define WITH_BRUTE_FORCE
+#define WITH_BRUTE_FORCE
 #endif
 
 #ifdef DEBUG
@@ -27,28 +27,82 @@ class MapRTree {
         public:
         MapRect rect; // data-node should also have vaild rect
         int ch_cnt; // ch_cnt == -1, means this node is a data-node
-        union {
-            node *ch[Mhigh];
-            TP data; // only data-node have data
-        };
+              
+        double enlargement(node *data) // compute enlargement if we add 'data' to this node
+        {
+            MapRect nrect = MapRect(rect, data->rect);
+            assert(nrect.area() >= rect.area());
+            return nrect.area() - rect.area();
+        }
+    };
+    
+    class data_node : public node {
+        public:
+        TP data;
+        
+        data_node(TP obj) // data-node constructor
+        {
+            node::rect = obj->get_rect();
+            node::ch_cnt = -1;
+            data = obj;
+        }
         
         #ifdef DEBUG
         void print()
         {
-            printf("node %p:\n", this);
-            printf(" rect=(%f, %f, %f, %f)\n", rect.left, rect.right, rect.bottom, rect.top);
-            printf(" ch_cnt=%d\n", ch_cnt);
+            printf("data_node %p:\n", this);
+            printf(" rect=(%f, %f, %f, %f)\n", node::rect.left, node::rect.right, node::rect.bottom, node::rect.top);
+            printf(" ch_cnt=%d\n", node::ch_cnt);
+            printf(" data=%p\n", node::data);
+        }
+        #endif
+    };
+
+    class tree_node : public node {
+        public:
+        // although the type is tree_node, it might be point to a data node
+        // since it's easy to write code to process data node specially
+        tree_node *ch[Mhigh];
+        
+        #ifdef DEBUG
+        void print()
+        {
+            printf("tree_node %p:\n", this);
+            printf(" rect=(%f, %f, %f, %f)\n", node::rect.left, node::rect.right, node::rect.bottom, node::rect.top);
+            printf(" ch_cnt=%d\n", node::ch_cnt);
             printf(" ch_list:");
-            for (int i = 0; i < ch_cnt; i++) printf(" ch[%d]=%p", i, ch[i]);
+            for (int i = 0; i < node::ch_cnt; i++) printf(" ch[%d]=%p", i, ch[i]);
             printf("\n");
-            printf(" data=%p\n", data);
+        }
+        #endif
+        
+        tree_node() {}
+        
+        tree_node(data_node *dnode) // create a leaf node, this node has one data-node
+        {
+            node::rect = dnode->rect;
+            node::ch_cnt = 1;
+            ch[0] = (tree_node *) dnode;
         }
         
+        void update(tree_node *nd) // update rect using one node's rectangle
+        {
+            node::rect.merge(nd->rect);
+        }
+        
+        void update() // update rect using all of our child's rectangles
+        {
+            node::rect = ch[0]->rect;
+            for (int i = 1; i < node::ch_cnt; i++)
+                node::rect.merge(ch[i]->rect);
+        }
+
+        #ifdef DEBUG
         void check_rect()
         {
-            MapRect old_rect = rect;
+            MapRect old_rect = node::rect;
             update();
-            MapRect new_rect = rect;
+            MapRect new_rect = node::rect;
             assert(new_rect.left == old_rect.left); // no need to use fequ
             assert(new_rect.right == old_rect.right);
             assert(new_rect.bottom == old_rect.bottom);
@@ -56,62 +110,27 @@ class MapRTree {
         }
         #endif
         
-        node() {}
-        
-        node(node *dnode) // create a leaf node, this node has one data-node
-        {
-            rect = dnode->rect;
-            ch_cnt = 1;
-            ch[0] = dnode;
-        }
-        
-        node(TP obj) // data-node constructor
-        {
-            rect = obj->get_rect();
-            ch_cnt = -1;
-            data = obj;
-        }
-        
-        void update() // update rect using all of our child's rectangles
-        {
-            rect = ch[0]->rect;
-            for (int i = 1; i < ch_cnt; i++)
-                rect.merge(ch[i]->rect);
-        }
-        
-        void update(node *nd) // update rect using one node's rectangle
-        {
-            rect.merge(nd->rect);
-        }
-        
         bool is_leaf()
         {
             // if our first children is data-node, this is leaf node
-            assert(ch_cnt > 0);
+            assert(node::ch_cnt > 0);
             bool ret = ch[0]->ch_cnt < 0;
             #ifdef DEBUG
-            for (int i = 0; i < ch_cnt; i++)
+            for (int i = 0; i < node::ch_cnt; i++)
                 assert(ret == (ch[i]->ch_cnt < 0));
             #endif
             return ret;
         }
         
-        double enlargement(node *data) // compute enlargement if we add 'data' to this node
-        {
-            MapRect nrect = MapRect(rect, data->rect);
-            assert(nrect.area() >= rect.area());
-            return nrect.area() - rect.area();
-        }
-        
-        void split(node *&nnode, node *append) // can't be *&append, see adjust tree below
+        void split(tree_node *&nnode, tree_node *append) // can't be *&append, see adjust tree below
         {
             // if we add 'append', we would have Mhigh + 1 nodes.
             // so we need to split current node with to node 'nnode'
-            assert(ch_cnt == Mhigh);
+            assert(node::ch_cnt == Mhigh);
             
-            nnode = new node;
-            node **ch1 = ch, **ch2 = nnode->ch;
-            node *ch3[Mhigh + 1]; assert(sizeof(ch3) > sizeof(ch));
+            nnode = new tree_node;
+            tree_node **ch1 = ch, **ch2 = nnode->ch;
+            tree_node *ch3[Mhigh + 1]; assert(sizeof(ch3) > sizeof(ch));
             memcpy(ch3, ch, sizeof(ch));
             ch3[Mhigh] = append;
             // split ch3 [0, Mhigh] to ch1[] and ch2[]
@@ -194,11 +213,11 @@ class MapRTree {
                 }
             }
             
-            rect = g1; ch_cnt = p1;
+            node::rect = g1; node::ch_cnt = p1;
             nnode->rect = g2; nnode->ch_cnt = p2;
-            assert(Mlow <= ch_cnt && ch_cnt <= Mhigh);
+            assert(Mlow <= node::ch_cnt && node::ch_cnt <= Mhigh);
             assert(Mlow <= nnode->ch_cnt && nnode->ch_cnt <= Mhigh);
-            assert(ch_cnt + nnode->ch_cnt == Mhigh + 1);
+            assert(node::ch_cnt + nnode->ch_cnt == Mhigh + 1);
             #ifdef DEBUG
             //printf("ch1:"); for (int i = 0; i < p1; i++) printf(" %p", ch1[i]); printf("\n");
             //printf("ch2:"); for (int i = 0; i < p2; i++) printf(" %p", ch2[i]); printf("\n");
@@ -211,15 +230,18 @@ class MapRTree {
             check_rect();
             nnode->check_rect();
             #endif
-            
         }
     };
     
-    node *root;
+    tree_node *root;
+    #ifdef DEBUG
+    int data_node_cnt;
+    int tree_node_cnt;
+    #endif
     
     // insert data-node 'data' to our tree 'root'
     // if split-node occured, new node is saved to 'nnode', otherwise 'nnode' is set to NULL
-    void tree_insert(node *root, node *dnode, node *&nnode)
+    void tree_insert(tree_node *root, tree_node *dnode, tree_node *&nnode)
     {
         //printf("insert root=%p dnode=%p data=%p\n", root, dnode, dnode->data);
         if (root->is_leaf()) { // if this is leaf node, do insert staff
@@ -241,12 +263,31 @@ class MapRTree {
         }
         
         // find leaf
-        //   we don't need to resolve ties
-        //   since it has very small chance that two doubles are equal
-        int cid = 0; // choosen child's id
-        for (int i = 1; i < root->ch_cnt; i++)
-            if (root->ch[i]->enlargement(dnode) < root->ch[cid]->enlargement(dnode))
-                cid = i; // choose the smaller one
+        std::vector<int> cidl; // choosen child's id
+        cidl.push_back(0);
+        double min_enlargement = root->ch[0]->enlargement(dnode);
+        for (int i = 1; i < root->ch_cnt; i++) {
+            double cur_enlargement = root->ch[i]->enlargement(dnode);
+            if (cur_enlargement < min_enlargement) { // choose the smaller one
+                cidl.clear();
+                cidl.push_back(i);
+                min_enlargement = cur_enlargement;
+            } else if (cur_enlargement == min_enlargement) {
+                cidl.push_back(i); // if same add to it's list;
+            }
+        }
+        
+        // choose smallest leaf from 'cid'
+        assert(cidl.size() > 0);
+        int cid = cidl.front();
+        double min_area = root->ch[cid]->rect.area();
+        for (std::vector<int>::iterator it = ++cidl.begin(); it != cidl.end(); it++) {
+            double cur_area = root->ch[*it]->rect.area();
+            if (cur_area < min_area) {
+                cid = *it;
+                min_area = cur_area;
+            }
+        }
         
         tree_insert(root->ch[cid], dnode, nnode);
         
@@ -275,19 +316,19 @@ class MapRTree {
     void tree_insert(TP data)
     {
         // create data-node
-        node *dnode = new node(data);
+        data_node *dnode = new data_node(data);
         if (root == NULL) {
             // if tree is empty, create a node whose child is dnode
             // can't let root = dnode directly, since dnode is a data-node, not normal-node
-            root = new node(dnode);
+            root = new tree_node(dnode);
         } else {
             // tree is not empty, call tree_insert(?, ?, ?) to insert
-            node *nnode;
-            tree_insert(root, dnode, nnode); // do insert
+            tree_node *nnode;
+            tree_insert(root, (tree_node *) dnode, nnode); // do insert
             if (nnode) {
                 // old root splited, we should create new root
-                node *old_root = root;
-                root = new node;
+                tree_node *old_root = root;
+                root = new tree_node;
                 root->rect = MapRect(old_root->rect, nnode->rect);
                 root->ch_cnt = 2;
                 root->ch[0] = old_root;
@@ -296,7 +337,7 @@ class MapRTree {
         }
     }
     
-    void tree_search(std::vector<TP> &result, node *root, const MapRect &rect)
+    void tree_search(std::vector<TP> &result, tree_node *root, const MapRect &rect)
     {
         //root->print();
         assert(root->ch_cnt > 0);
@@ -304,7 +345,7 @@ class MapRTree {
             for (int i = 0; i < root->ch_cnt; i++) {
                 assert(root->ch[i]->ch_cnt < 0);
                 if (rect.intersect(root->ch[i]->rect))
-                    result.push_back(root->ch[i]->data);
+                    result.push_back(((data_node *) root->ch[i])->data);
             }
             return;
         }
@@ -316,16 +357,26 @@ class MapRTree {
         }
     }
     
-    void tree_destruct(node *root)
+    void tree_destruct(tree_node *root)
     {
-        for (int i = 0; i < root->ch_cnt; i++)
-            tree_destruct(root->ch[i]);
-        delete root;
+        if (root->ch_cnt >= 0) {
+            #ifdef DEBUG
+            tree_node_cnt++;
+            #endif
+            for (int i = 0; i < root->ch_cnt; i++)
+                tree_destruct(root->ch[i]);
+            delete root;
+        } else {
+            #ifdef DEBUG
+            data_node_cnt++;
+            #endif
+            delete (data_node *) root;
+        }
     }
     
     // copy all r-tree rectanges to a vector
     // useful for learning r-tree internal details
-    void tree_rect(std::vector<MapRect> &result, node *root)
+    void tree_rect(std::vector<MapRect> &result, tree_node *root)
     {
         result.push_back(root->rect);
         for (int i = 0; i < root->ch_cnt; i++)
@@ -346,6 +397,9 @@ class MapRTree {
     MapRTree()
     {
         root = NULL;
+        #ifdef DEBUG
+        data_node_cnt = tree_node_cnt = 0;
+        #endif
         assert(Mhigh > 1);
         assert(Mlow >= 1);
         assert(Mlow < Mhigh);
@@ -354,8 +408,9 @@ class MapRTree {
     
     ~MapRTree()
     {
-        printd("destructing r-tree object %p\n", this);
         if (root) tree_destruct(root);
+        // data_node_cnt and tree_node_cnt is caculated when destructing tree
+        printd("destructing r-tree object %p, data_node=%d, tree_node=%d\n", this, data_node_cnt, tree_node_cnt);
     }
     
     
