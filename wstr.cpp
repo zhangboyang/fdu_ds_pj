@@ -60,6 +60,6 @@ wchar_t *cs2wcs(const char *str) // cstring to wide-cstring, alloc memory
     if (len == 0) fail("MultiByteToWideChar failed");
     wchar_t *ret = new wchar_t[len]; // dislike mbstowcs(), no +1 here
     MultiByteToWideChar(CP_UTF8, 0, str, -1, ret, len);
-    return 0;
+    return ret;
 }
 #endif

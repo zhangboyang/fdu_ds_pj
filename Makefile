@@ -5,8 +5,9 @@ OBJ_FILES := $(notdir $(CPP_FILES:.cpp=.o))
 # useful linking flags (google pprof): -lprofiler -ltcmalloc
 CXXFLAGS := $(shell xml2-config --cflags) $(shell wx-config --cxxflags) -Wall -g -O0 -DDEBUG
 ifeq ($(OS),Windows_NT)
+# compile options for wxwidgets: ./configure --prefix=/mingw --disable-all-features --enable-gui --disable-debug --enable-mousewheel --enable-wxdib --enable-image --enable-menus --without-subdirs BUILD=release --enable-stattext --enable-textctrl --enable-button --enable-textdlg --enable-uxtheme --enable-dynlib
 	CXXFLAGS += -DZBY_OS_WINDOWS
-	LD_FLAGS := $(CXXFLAGS) -lopengl32 -lglu32 -lglew32 -lfreeglut $(shell xml2-config --libs) $(shell wx-config --libs)
+	LD_FLAGS := $(CXXFLAGS) -lopengl32 -lglu32 -lglew32 -lfreeglut $(shell xml2-config --libs) $(shell wx-config --libs) -Wl,--subsystem,console
 else
 	CXXFLAGS += -DZBY_OS_LINUX
 	LD_FLAGS := $(CXXFLAGS) -lGL -lGLU -lGLEW -lglut $(shell xml2-config --libs) $(shell wx-config --libs) -lprofiler -ltcmalloc
