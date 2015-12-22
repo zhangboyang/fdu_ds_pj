@@ -5,6 +5,7 @@
 #include "MapData.h"
 #include "MapGUI.h"
 #include "MapOperation.h"
+#include "MapShortestPath.h"
 
 class MapGraphics {
     private:
@@ -19,6 +20,7 @@ class MapGraphics {
     MapOperation *mo;
     MapData *md;
     MapGUI *mgui;
+    MapShortestPath *msp;
     
     struct vnode {
         float x, y;
@@ -73,7 +75,12 @@ class MapGraphics {
     float wrthick;
     double nrsize;
     
-    int selected_point_rect_size;
+    float sp_src_color[3], sp_dest_color[3], sp_path_color[3]; // shortest path color
+    float sp_path_thick;
+    double sp_vertex_rect_size;
+    float sp_vertex_rect_thick;
+    
+    double selected_point_rect_size;
     float selected_point_rect_thick;
     float selected_way_thick;
     double zoom_bysize_factor;
@@ -84,8 +91,8 @@ class MapGraphics {
 
     void target(MapData *md);
     void target_gui(MapGUI *mgui);
+    void target_shortestpath(MapShortestPath *msp);
     void target_operation(MapOperation *mo);
-
     
     void get_display_range(double *minx, double *maxx, double *miny, double *maxy);
     void push_display_range();

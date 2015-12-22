@@ -25,6 +25,7 @@ static MapXMLLoader xmlldr;
 static MapGraphics mg;
 static MapGUI mgui;
 static MapOperation mo;
+static MapShortestPath msp;
 
 int main(int argc, char *argv[])
 {
@@ -92,25 +93,14 @@ int main(int argc, char *argv[])
     mg.move_step = str2double(cfgp.query("MOVE_STEP"));
     mg.zoom_step = str2double(cfgp.query("ZOOM_STEP"));
     mg.zoom_bysize_factor = str2double(cfgp.query("ZOOM_BYSIZE_FACTOR"));
-    if (sscanf(cfgp.query("SELECTED_COLOR"), "%f | %f | %f",
+    
+    // load graphics color and thickness
+    if (sscanf(cfgp.query("SELECTED_COLOR"), "%f | %f | %f", // selected colors
                  &mg.scolor[0], &mg.scolor[1], &mg.scolor[2]) != 3)
         fail("can't parse scolor");
     mg.selected_point_rect_size = str2double(cfgp.query("SELECTED_POINT_RECT_SIZE"));
     mg.selected_point_rect_thick = str2double(cfgp.query("SELECTED_POINT_RECT_THICK"));
     mg.selected_way_thick = str2double(cfgp.query("SELECTED_WAY_THICK"));
-    if (sscanf(cfgp.query("POLY_COLOR"), "%f | %f | %f",
-                 &mg.pcolor[0], &mg.pcolor[1], &mg.pcolor[2]) != 3)
-        fail("can't parse pcolor");
-    mg.pthickness = str2double(cfgp.query("POLY_THICK"));
-    if (sscanf(cfgp.query("NODE_RESULT_COLOR"), "%f | %f | %f",
-                 &mg.nrcolor[0], &mg.nrcolor[1], &mg.nrcolor[2]) != 3)
-        fail("can't parse nrcolor");
-    mg.nrsize = str2double(cfgp.query("NODE_RESULT_RECT_SIZE"));
-    mg.nrthick = str2double(cfgp.query("NODE_RESULT_RECT_THICK"));
-    if (sscanf(cfgp.query("WAY_RESULT_COLOR"), "%f | %f | %f",
-                 &mg.wrcolor[0], &mg.wrcolor[1], &mg.wrcolor[2]) != 3)
-        fail("can't parse wrcolor");
-    mg.wrthick = str2double(cfgp.query("WAY_RESULT_THICK"));
     for (int num = 0; num < MapOperation::MAX_KBDNUM; num++) {
         char buf[MAXLINE];
         sprintf(buf, "SELECTED_COLOR_NUM%d", num);
@@ -118,11 +108,37 @@ int main(int argc, char *argv[])
                  &mg.ncolor[num][0], &mg.ncolor[num][1], &mg.ncolor[num][2]) != 3)
             fail("can't parse %s", buf);
     }
+    if (sscanf(cfgp.query("POLY_COLOR"), "%f | %f | %f", // poly colors
+                 &mg.pcolor[0], &mg.pcolor[1], &mg.pcolor[2]) != 3)
+        fail("can't parse pcolor");
+    mg.pthickness = str2double(cfgp.query("POLY_THICK"));
+    if (sscanf(cfgp.query("NODE_RESULT_COLOR"), "%f | %f | %f", // node result colors
+                 &mg.nrcolor[0], &mg.nrcolor[1], &mg.nrcolor[2]) != 3)
+        fail("can't parse nrcolor");
+    mg.nrsize = str2double(cfgp.query("NODE_RESULT_RECT_SIZE"));
+    mg.nrthick = str2double(cfgp.query("NODE_RESULT_RECT_THICK"));
+    if (sscanf(cfgp.query("WAY_RESULT_COLOR"), "%f | %f | %f", // way result colors
+                 &mg.wrcolor[0], &mg.wrcolor[1], &mg.wrcolor[2]) != 3)
+        fail("can't parse wrcolor");
+    mg.wrthick = str2double(cfgp.query("WAY_RESULT_THICK"));
+    mg.sp_vertex_rect_size = str2double(cfgp.query("SHORTESTPATH_VERTEX_RECT_SIZE")); // shortest path colors
+    mg.sp_vertex_rect_thick = str2double(cfgp.query("SHORTESTPATH_VERTEX_RECT_THICK"));
+    if (sscanf(cfgp.query("SHORTESTPATH_SRC_COLOR"), "%f | %f | %f",
+                 &mg.sp_src_color[0], &mg.sp_src_color[1], &mg.sp_src_color[2]) != 3)
+        fail("can't parse sp_src_color");
+    if (sscanf(cfgp.query("SHORTESTPATH_DEST_COLOR"), "%f | %f | %f",
+                 &mg.sp_dest_color[0], &mg.sp_dest_color[1], &mg.sp_dest_color[2]) != 3)
+        fail("can't parse sp_dest_color");
+    if (sscanf(cfgp.query("SHORTESTPATH_PATH_COLOR"), "%f | %f | %f",
+                 &mg.sp_path_color[0], &mg.sp_path_color[1], &mg.sp_path_color[2]) != 3)
+        fail("can't parse sp_path_color");
+    mg.sp_path_thick = str2double(cfgp.query("SHORTESTPATH_PATH_THICK"));
+
     
     mg.target(&md);
     mg.target_gui(&mgui);
+    mg.target_shortestpath(&msp);
     mg.target_operation(&mo);
-    
     
     const char *window_title = cfgp.query("TITLE");
     cfgp.check_not_queried_keys();

@@ -19,14 +19,18 @@ using namespace std;
 
 void MapGraphics::target(MapData *md) { MapGraphics::md = md; }
 void MapGraphics::target_gui(MapGUI *mgui) { MapGraphics::mgui = mgui; }
-void MapGraphics::target_operation(MapOperation *mo)
+void MapGraphics::target_shortestpath(MapShortestPath *msp) { MapGraphics::msp = msp; }
+void MapGraphics::target_operation(MapOperation *mo) // must be called after other target()
 {
     assert(md);
     assert(mgui);
+    assert(msp);
     MapGraphics::mo = mo;
     mo->mg = this;
     mo->md = md;
     mo->mgui = mgui;
+    mo->msp = msp;
+    msp->md = md;
 }
 
 void MapGraphics::map_operation(MapOperation::MapOperationCode op)
@@ -52,6 +56,7 @@ void MapGraphics::update_current_display_level()
 
 void MapGraphics::trans_gcoord(double x, double y, double *gx, double *gy)
 {
+    // important, if you change this, please also change print_string().
     *gx = x - dminx;
     *gy = y - dminy;
 }
@@ -366,13 +371,11 @@ void MapGraphics::redraw()
     
     glShadeModel(GL_FLAT);
     
-//    gluOrtho2D(dminx, dmaxx, dminy, dmaxy);
 //    printf("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
 //    printf("disp-res: %f\n", get_display_resolution());
 //    printf("zoom-level: %d\n", zoom_level);
     
     update_current_display_level();
-    //printd("current display level: %d\n", clvl);
     
     double rt_reload_time = -1;
     if (rtminx != dminx || rtmaxx != dmaxx ||
@@ -393,10 +396,7 @@ void MapGraphics::redraw()
         rt_reload_time = rt_ed_clock - rt_st_clock;
     }
 
-    //printd("r-tree result lines: %lld\n", (LL) dll.size());
-
     // draw r-tree rectangles
-
     if (show_rtree) {
         vector<MapRect> rtree_rects;
         md->lrt[clvl].get_all_tree_rect(rtree_rects);
@@ -424,6 +424,7 @@ void MapGraphics::redraw()
     //printd("need to draw %lld ways\n", (LL) dwl.size());
     
     bool sway_flag = false;
+    // draw numbered ways
     for (int num = 0; num < MapOperation::MAX_KBDNUM; num++) {
         MapWay *way = mo->nway[num];
         if (way) {
@@ -432,6 +433,12 @@ void MapGraphics::redraw()
             glLineWidth(selected_way_thick);
             draw_way(way, true);
         }
+    }
+    // draw selected way
+    if (mo->sway && !sway_flag) {
+        glColor3f(scolor[0], scolor[1], scolor[2]);
+        glLineWidth(selected_way_thick);
+        draw_way(mo->sway, true);
     }
     // draw normal ways
     // speed is very important, use glDrawElements() instead of glBegin()...glEnd()
@@ -447,6 +454,7 @@ void MapGraphics::redraw()
         glLineWidth(thickness);
         draw_way(way);
     }*/
+    // draw result ways
     for (vector<MapWay *>::iterator wit = mo->wresult.begin(); wit != mo->wresult.end(); wit++) {
         MapWay *way = *wit;
         bool wflag = false;
@@ -461,16 +469,23 @@ void MapGraphics::redraw()
             draw_way(way, true);
         }
     }
-    if (mo->sway && !sway_flag) {
-        glColor3f(scolor[0], scolor[1], scolor[2]);
-        glLineWidth(selected_way_thick);
-        draw_way(mo->sway, true);
+    // draw shortest path
+    if (!mo->sp_result.empty()) {
+        glLineWidth(sp_path_thick);
+        glColor3f(sp_path_color[0], sp_path_color[1], sp_path_color[2]);
+        glBegin(GL_LINES);
+        for (vector<MapLine *>::iterator lit = mo->sp_result.begin(); lit != mo->sp_result.end(); lit++) {
+            MapLine *line = *lit;
+            MapNode *from = line->p1, *to = line->p2;
+            draw_vertex(from->x, from->y);
+            draw_vertex(to->x, to->y);
+        }
+        glEnd();
     }
-    
-
     
     
     bool snode_flag = false;
+    // draw numbered nodes
     for (int num = 0; num < MapOperation::MAX_KBDNUM; num++) {
         MapNode *node = mo->nnode[num];
         if (node) {
@@ -478,6 +493,7 @@ void MapGraphics::redraw()
             if (node == mo->snode) snode_flag = true;
         }
     }
+    // draw selected node
     if (mo->snode && !snode_flag)
         highlight_point(mo->snode, selected_point_rect_size, scolor, selected_point_rect_thick);
     for (vector<MapNode *>::iterator nit = mo->nresult.begin(); nit != mo->nresult.end(); nit++) {
@@ -490,7 +506,7 @@ void MapGraphics::redraw()
             }
         if (!nflag) highlight_point(node, nrsize, nrcolor, nrthick);
     }
-        
+    // draw poly vertex
     if (mo->pvl.size() > 1) {
         glColor3f(pcolor[0], pcolor[1], pcolor[2]);
         glLineWidth(pthickness);
@@ -500,24 +516,55 @@ void MapGraphics::redraw()
         }
         glEnd();
     }
+    // draw shortest path src and dest
+    if (mo->sp_start) highlight_point(mo->sp_start, sp_vertex_rect_size, sp_src_color, sp_vertex_rect_thick);
+    if (mo->sp_end) highlight_point(mo->sp_end, sp_vertex_rect_size, sp_dest_color, sp_vertex_rect_thick);
 
+
+    // draw messages
     string redraw_str = printf2str(
         "Level: %d\nWay: %lld\nLine: %lld\nVertex: %d+%d\nOperation: %.2f ms\n",
         clvl, (LL) dwl.size(), (LL) dll.size(), vertex_count, (int) vl.size(), last_operation_time);
-    
     if (rt_reload_time >= 0) { // vertex reloaded
-        redraw_str += printf2str("Vertex Reload: %.2f ms\n", rt_reload_time);
+        redraw_str += printf2str("Reload: %.2f ms\n", rt_reload_time);
     }
     
-    print_string(("== Last Frame ==\n" + last_redraw_str +
-                  "== This Frame ==\n" + redraw_str +
-                  "== Message ==\n" + msg).c_str());
+    string snode_str;
+    if (mo->snode) {
+        snode_str = "== Selected Node ==\n";
+        MapNode *snode = mo->snode;
+        snode_str += printf2str(
+            "ID: %lld\nLat: %f\nLon: %f\nSP: %s\n",
+            snode->id, snode->lat, snode->lon, snode->on_shortest_path ? "YES" : "NO");
+    }
+    string sway_str;
+    if (mo->sway) {
+        sway_str = "== Selected Way ==\n";
+        MapWay *sway = mo->sway;
+        sway_str += printf2str("ID: %lld\n", sway->id);
+        double way_length = sway->calc_length() * MapData::dist_factor;
+        sway_str += "Length: " + md->get_length_string(way_length) + '\n';
+        if (sway->is_closed()) {
+            double way_area = sway->calc_area() * sq(MapData::dist_factor);
+            sway_str += "Ares: " + md->get_area_string(way_area) + '\n';
+        }
+        sway_str += printf2str("SP: %s\n", sway->on_shortest_path ? "YES" : "NO");
+    }
+    
+    
+    string str_to_print = 
+        "== Last Frame ==\n" + last_redraw_str +
+        "== This Frame ==\n" + redraw_str +
+        snode_str + sway_str;
+    if (!msg.empty()) str_to_print.append("== Message ==\n" + msg);
+    print_string(str_to_print.c_str());
     
     glFinish();
     glFlush();
     
     ed_clock = myclock();
     
+    // calculate fps
     double cur_redraw_time = ed_clock - st_clock;
     double cur_refresh_time = cur_redraw_time + last_operation_time;
     const int refresh_time_list_avg = 10;
@@ -539,10 +586,12 @@ void MapGraphics::special_keyevent(int key, int x, int y)
     MapOperation::MapOperationCode op;
     switch (key) {
         case GLUT_KEY_F1: op = MapOperation::RESET_VIEW; break;
-        case GLUT_KEY_F2: op = MapOperation::TOGGLE_RTREE; break;
+        case GLUT_KEY_F2: op = MapOperation::CLEAR_ALL; break;
         case GLUT_KEY_F3: op = MapOperation::QUERY_NAME; break;
-        case GLUT_KEY_F4: op = MapOperation::CLEAR_ALL; break;
-        case GLUT_KEY_F5: op = MapOperation::QUERY_TAG; break;
+        case GLUT_KEY_F4: op = MapOperation::QUERY_TAG; break;
+        case GLUT_KEY_F5: op = MapOperation::RUN_SHORTESTPATH; break;
+        case GLUT_KEY_F6: op = MapOperation::TOGGLE_RTREE; break;
+        case GLUT_KEY_F7: op = MapOperation::SHOW_SHORTESTPATH_RESULT; break;
         case GLUT_KEY_F8: op = MapOperation::SHOW_QUERY_RESULT; break;
         case GLUT_KEY_F9: op = MapOperation::CENTER_SEL_POINT; break;
         case GLUT_KEY_F10: op = MapOperation::CENTER_SEL_WAY; break;
@@ -568,16 +617,16 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
     int mkey = glutGetModifiers();
     int shift = mkey & GLUT_ACTIVE_SHIFT;
     switch (kbd_char) { // convert SHIFT+NUM to NUM
-        case '!': kbd_char = '1'; shift = 1; break;
-        case '@': kbd_char = '2'; shift = 1; break;
-        case '#': kbd_char = '3'; shift = 1; break;
-        case '$': kbd_char = '4'; shift = 1; break;
-        case '%': kbd_char = '5'; shift = 1; break;
-        case '^': kbd_char = '6'; shift = 1; break;
-        case '&': kbd_char = '7'; shift = 1; break;
-        case '*': kbd_char = '8'; shift = 1; break;
-        case '(': kbd_char = '9'; shift = 1; break;
-        case ')': kbd_char = '0'; shift = 1; break;
+        case '!': kbd_char = '1'; break;
+        case '@': kbd_char = '2'; break;
+        case '#': kbd_char = '3'; break;
+        case '$': kbd_char = '4'; break;
+        case '%': kbd_char = '5'; break;
+        case '^': kbd_char = '6'; break;
+        case '&': kbd_char = '7'; break;
+        case '*': kbd_char = '8'; break;
+        case '(': kbd_char = '9'; break;
+        case ')': kbd_char = '0'; break;
     }
     if (isdigit(kbd_char)) {
         kbd_num = kbd_char == '0' ? 9 : kbd_char - '1';
@@ -604,6 +653,9 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case 'h': op = MapOperation::MOVE_LEFT; break;
         case 'l': op = MapOperation::MOVE_RIGHT; break;
         case '\x1b': op = MapOperation::POP_DISPLAY; break; // ESC
+        case 'a': op = MapOperation::SET_SHORTESTPATH_START; break;
+        case 's': op = MapOperation::SET_SHORTESTPATH_END; break;
+        case 'd': op = MapOperation::CLEAR_SHORTESTPATH_VERTEX; break;
         default: printd("unknown key %c\n", key); return;
     }
     map_operation(op);
@@ -691,12 +743,15 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     if (glewerr != GLEW_OK) {
         fail("glewInit() failed : %s", glewGetErrorString(glewerr));
     }
+
+    const char *glstr;
+    printf("opengl information:\n");
+    glstr = (const char *) glGetString(GL_VENDOR); printf(" vendor: %s\n", glstr ? glstr : "null");
+    glstr = (const char *) glGetString(GL_RENDERER); printf(" renderer: %s\n", glstr ? glstr : "null");
+    glstr = (const char *) glGetString(GL_VERSION); printf(" version: %s\n", glstr ? glstr : "null");
+    glstr = (const char *) glGetString(GL_SHADING_LANGUAGE_VERSION); printf("  shading: %s\n", glstr ? glstr : "null");
     
     if (!(GLEW_VERSION_1_5)) {
-        const char *glstr;
-        glstr = (const char *) glGetString(GL_VENDOR); printf("GL_VENDOR: %s\n", glstr);
-        glstr = (const char *) glGetString(GL_RENDERER); printf("GL_RENDERER: %s\n", glstr);
-        glstr = (const char *) glGetString(GL_VERSION); printf("GL_VERSION: %s\n", glstr);
         fail("OpenGL version is too low to run this program.");
     }
 
@@ -713,11 +768,12 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     
     msg = "Welcome to ZBY's Map\n";
-    const char *glstr;
+    /*#ifdef DEBUG
     glstr = (const char *) glGetString(GL_VENDOR); if (glstr) { msg += "Vendor: "; msg += glstr; msg += '\n';}
     glstr = (const char *) glGetString(GL_RENDERER); if (glstr) { msg += "Renderer: "; msg += glstr; msg += '\n';}
     glstr = (const char *) glGetString(GL_VERSION); if (glstr) { msg += "Version: "; msg += glstr; msg += '\n';}
-    //glstr = (const char *) glGetString(GL_SHADING_LANGUAGE_VERSION); if (glstr) { msg += '\n'; msg += glstr; }
+    glstr = (const char *) glGetString(GL_SHADING_LANGUAGE_VERSION); if (glstr) { msg += "Shading: "; msg += glstr; msg += '\n'; }
+    #endif*/
     
     glutMainLoop(); // never return
     assert(0);

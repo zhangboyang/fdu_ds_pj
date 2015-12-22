@@ -93,7 +93,12 @@ void MapXMLLoader::process_node()
                 t += '/';
                 t += valbuf;
                 mway_ptr->waytype = md->wt.query_id(t);
-            } else if (strstr(keybuf, "name")) {
+                mway_ptr->on_shortest_path = true;
+            }
+            if (strcmp(keybuf, "oneway") == 0 && strcmp(valbuf, "yes") == 0) {
+                mway_ptr->one_way = true;
+            }
+            if (md->tag_key_is_name(string(keybuf))) {
                 wstring wstr(s2ws(string(valbuf)));
                 md->wd.insert(wstr.c_str(), mway_ptr);
             }
@@ -110,7 +115,7 @@ void MapXMLLoader::process_node()
             mnode_ptr->tl.push_back(make_pair(string(keybuf), s2ws(string(valbuf))));
             int tagid = md->mt.query(keybuf, valbuf);
             if (tagid >= 0) md->insert_with_tag(mnode_ptr, tagid);
-            if (strstr(keybuf, "name")) {
+            if (md->tag_key_is_name(string(keybuf))) {
                 wstring wstr(s2ws(string(valbuf)));
                 md->nd.insert(wstr.c_str(), mnode_ptr);
             }
@@ -134,8 +139,6 @@ void MapXMLLoader::process_node()
         MapWay *mway = new MapWay;
         mway->set_id(id);
         md->insert(mway);
-        //mway->set_level(0);
-        mway->waytype = 0; // set to default
         mway_ptr = mway; // process child later
     } else if (strcmp(name, "relation") == 0) {
         static int x = 0; // FIXME: 'relation' not implemented

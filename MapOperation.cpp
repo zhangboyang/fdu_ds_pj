@@ -69,7 +69,7 @@ void MapOperation::query_tag_with_poly()
     query_tag_with_filter(tag, base, &MapOperation::poly_node_filter, &MapOperation::poly_way_filter);
     
     select_results();
-    show_results();
+    //show_results();
 }
 
 MapPoint MapOperation::nearby_center;
@@ -135,7 +135,7 @@ void MapOperation::query_tag_with_dist()
     sort(wresult.begin(), wresult.end(), sort_way_by_dist);
     
     select_results();
-    show_results();
+    //show_results();
 }
 
 
@@ -161,7 +161,7 @@ void MapOperation::query_tag_in_display()
     query_tag_with_filter(tag, base, &MapOperation::true_node_filter, &MapOperation::true_way_filter);
     
     select_results();
-    show_results();
+    //show_results();
 }
 
 void MapOperation::query_tag()
@@ -188,7 +188,7 @@ void MapOperation::query_name()
     query_timer_stop();
     
     select_results();
-    show_results();
+    //show_results();
 }
 
 void MapOperation::select_results()
@@ -263,42 +263,13 @@ void MapOperation::show_wayinfo()
         msgbox_append_names((MapObject *) sway);
         
         // way length
-        double way_length = 0;
-        MapPoint A(sway->nl[0].front()->x, sway->nl[0].front()->y), B;
-        for (vector<MapNode *>::iterator it = ++sway->nl[0].begin(); it != sway->nl[0].end(); it++) {
-            MapNode *node = *it;
-            B = MapPoint(node->x, node->y);
-            if (it != sway->nl[0].begin()) {
-                way_length += len(B - A);
-            }
-            A = B;
-        }
-        way_length *= dist_factor;
-        string lstr;
-        if (way_length >= 1e3)
-            lstr = printf2str("[length] %.2f km", way_length * 1e-3);
-        else
-            lstr = printf2str("[length] %.2f m", way_length);
-        mgui->set_msgbox_append(s2ws(lstr));
+        double way_length = sway->calc_length() * MapData::dist_factor;
+        mgui->set_msgbox_append(s2ws("[length] " + md->get_length_string(way_length)));
         
         // way area
-        if (!sway->nl[0].empty() && sway->nl[0].front() == sway->nl[0].back()) {
-            double way_area = 0;
-            MapPoint P(sway->nl[0].front()->x, sway->nl[0].front()->y);
-            MapPoint A(P), B;
-            for (vector<MapNode *>::iterator it = ++sway->nl[0].begin(); it != sway->nl[0].end(); it++) {
-                MapNode *node = *it;
-                B = MapPoint(node->x, node->y);
-                way_area += det(B - A, B - P);
-                A = B;
-            }
-            way_area = fabs(way_area * sq(dist_factor) / 2);
-            string astr;
-            if (way_area >= 1e3)
-                astr = printf2str("[area] %.3f km2", way_area * 1e-6);
-            else
-                astr = printf2str("[area] %.2f m2", way_area);
-            mgui->set_msgbox_append(s2ws(astr));
+        if (sway->is_closed()) {
+            double way_area = sway->calc_area() * sq(MapData::dist_factor);
+            mgui->set_msgbox_append(s2ws("[area] " + md->get_area_string(way_area)));
         }
         
         // way tags
@@ -387,12 +358,99 @@ void MapOperation::number_way()
 void MapOperation::add_polyvertex() { pvl.push_back(MapPoint(mg->mx, mg->my)); }
 void MapOperation::clear_polyvertex() { pvl.clear(); }
 
+bool MapOperation::query_main_name(MapObject *ptr, wstring &name)
+{
+    for (vector<pair<string, wstring> >::iterator it = ptr->tl.begin(); it != ptr->tl.end(); it++)
+        if (it->first.compare("name") == 0) {
+            name = it->second;
+            return true;
+        }
+    return false;
+}
+wstring MapOperation::get_node_string(MapNode *node)
+{
+    wstring ret, name;
+    ret.append(s2ws(printf2str(" node %lld", node->id)));
+    if (query_main_name((MapObject *) node, name)) ret.append(L" name " + name);
+    //ret.append(s2ws(printf2str(" lat=%f lon=%f", node->lat, node->lon)));
+    return ret;
+}
+wstring MapOperation::get_way_string(MapWay *way)
+{
+    wstring ret, name;
+    ret.append(s2ws(printf2str(" way %lld", way->id)));
+    if (query_main_name((MapObject *) way, name)) ret.append(L" name " + name);
+    return ret;
+}
+
+void MapOperation::set_shortestpath_start()
+{
+    if (snode->on_shortest_path)
+        sp_start = snode;
+    else
+        mg->msg.append("ERROR:\n  No highway connected to this node\n");
+}
+void MapOperation::set_shortestpath_end()
+{
+    if (snode->on_shortest_path)
+        sp_end = snode;
+    else
+        mg->msg.append("ERROR:\n  No highway connected to this node\n");
+}
+
+void MapOperation::clear_shortestpath_vertex() { sp_start = sp_end = NULL; }
+void MapOperation::clear_shortestpath_result() { sp_result.clear(); }
+void MapOperation::show_shortestpath_result()
+{
+    if (!sp_result.empty()) {
+        mgui->prepare_msgbox();
+        mgui->set_msgbox_title(s2ws("Shortest Path"));
+        mgui->set_msgbox_description(s2ws(printf2str("Here is the shortest path from node #%lld to node #%lld", sp_start->id, sp_end->id)));
+        mgui->set_msgbox_append(s2ws("[length] " + md->get_length_string(sp_mindist)));
+        mgui->set_msgbox_append(s2ws(string("[algorithm] ") + msp->get_algo_name(sp_algo)));
+        mgui->set_msgbox_append(s2ws(printf2str("[time] %.2f ms", sp_time)));
+        mgui->set_msgbox_append(L"");
+        mgui->set_msgbox_append(L"[source] " + get_node_string(sp_start));
+        for (vector<MapLine *>::iterator lit = ++sp_result.begin(); lit != sp_result.end(); lit++) {
+            MapLine *line = *lit;
+            MapNode *node = line->p1;
+            mgui->set_msgbox_append(L"-> " + get_node_string(node));
+            mgui->set_msgbox_append(L"     ^ " + get_way_string(line->way));
+        }
+        mgui->set_msgbox_append(L"[destination] " + get_node_string(sp_end));
+        mgui->show_msgbox();
+    }
+}
+
+void MapOperation::run_shortestpath()
+{
+    if (!sp_start) { mg->msg.append("ERROR:\n  No source vertex."); return; }
+    if (!sp_end) { mg->msg.append("ERROR:\n  No destination vertex."); return; }
+    if (sp_start == sp_end) { mg->msg.append("ERROR:\n  Source and destination are same."); return; }
+    
+    msp->set_start(sp_start);
+    msp->set_end(sp_end);
+    sp_result.clear();
+    sp_algo = MapShortestPath::ALGO_SPFA;
+    if (!msp->get_shortest_path(sp_result, sp_mindist, sp_time, sp_algo)) {
+        mg->msg.append("ERROR:\n  Shortest path failed.");
+        return;
+    }
+    sp_mindist *= MapData::dist_factor;
+    mg->msg.append(printf2str("Shortest Path Result\nAlgorithm: %s\n  Distance: %s\n  Time: %.2f ms",
+                                msp->get_algo_name(sp_algo), md->get_length_string(sp_mindist).c_str(), sp_time));
+    //show_shortestpath_result();
+}
+
 void MapOperation::clear_all()
 {
     clear_results();
     clear_select();
     clear_polyvertex();
+    clear_shortestpath_vertex();
+    clear_shortestpath_result();
 }
+
 
 void MapOperation::operation(MapOperationCode op)
 {
@@ -431,6 +489,11 @@ void MapOperation::operation(MapOperationCode op)
             case ADD_POLYVERTEX: add_polyvertex(); break;
             case CLEAR_POLYVERTEX: clear_polyvertex(); break;
             case QUERY_TAG: query_tag(); break;
+            case SET_SHORTESTPATH_START: set_shortestpath_start(); break;
+            case SET_SHORTESTPATH_END: set_shortestpath_end(); break;
+            case RUN_SHORTESTPATH: run_shortestpath(); break;
+            case SHOW_SHORTESTPATH_RESULT: show_shortestpath_result(); break;
+            case CLEAR_SHORTESTPATH_VERTEX: clear_shortestpath_vertex(); break;
             default: assert(0); break;
         }
     }

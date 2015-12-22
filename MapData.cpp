@@ -3,6 +3,7 @@
 #include "common.h"
 #include "MapData.h"
 #include "MapVector.h"
+#include "printf2str.h"
 
 #include <utility>
 #include <algorithm>
@@ -81,6 +82,22 @@ MapNode *MapData::get_node_by_id(LL id)
     map<LL, MapNode *>::iterator it = nm.find(id);
     if (it == nm.end()) fail("node object %lld not found", id);
     return it->second;
+}
+
+std::string MapData::get_area_string(double area)
+{
+    if (area >= 1e3)
+        return printf2str("%.3f km2", area * 1e-6);
+    else
+        return printf2str("%.2f m2", area);
+}
+
+std::string MapData::get_length_string(double length)
+{
+    if (length >= 1e3)
+        return printf2str("%.2f km", length * 1e-3);
+    else
+        return printf2str("%.2f m", length);
 }
 
 void MapData::prepare()
@@ -202,6 +219,34 @@ void MapData::construct()
                 //if (last_line) last_line->next = NULL;
             }
         
+        // construct edges
+        for (vector<MapLine *>::iterator lit = ll[0].begin(); lit != ll[0].end(); lit++) {
+            MapLine *line = *lit;
+            MapNode *from = line->p1, *to = line->p2;
+            if (line->way->on_shortest_path) {
+                if (line->way->one_way) {
+                    from->edges.push_back(line);
+                } else {
+                    from->edges.push_back(line);
+                    to->edges.push_back(line);
+                }
+            }
+        }
+        
+        // mark node's on_shortest_path
+        for (vector<MapLine *>::iterator lit = ll[0].begin(); lit != ll[0].end(); lit++) {
+            MapLine *line = *lit;
+            MapNode *from = line->p1, *to = line->p2;
+            from->on_shortest_path = to->on_shortest_path = line->way->on_shortest_path;
+        }
+        
+        // calc line(edge) length
+        for (vector<MapLine *>::iterator lit = ll[0].begin(); lit != ll[0].end(); lit++) {
+            MapLine *line = *lit;
+            MapNode *from = line->p1, *to = line->p2;
+            MapPoint A(from->x, from->y), B(to->x, to->y);
+            line->len = len(B - A);
+        }
         
         // put lines to r-tree
         lrt = new MapRTree<MapLine *> [tot_lvl];

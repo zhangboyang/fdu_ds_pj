@@ -7,6 +7,7 @@
 #include "MapObject.h"
 #include "MapGUI.h"
 #include "MapVector.h"
+#include "MapShortestPath.h"
 
 class MapGraphics;
 
@@ -35,6 +36,13 @@ class MapOperation {
     void clear_results();
     void clear_select();
     
+    void set_shortestpath_start();
+    void set_shortestpath_end();
+    void run_shortestpath();
+    void show_shortestpath_result();
+    void clear_shortestpath_vertex();
+    void clear_shortestpath_result();
+    
     void query_name();
     void select_way();
     void select_point();
@@ -49,6 +57,10 @@ class MapOperation {
     void query_tag_with_dist();
     void query_tag_in_display();
     void query_tag();
+    
+    bool query_main_name(MapObject *ptr, std::wstring &name);
+    std::wstring get_node_string(MapNode *node);
+    std::wstring get_way_string(MapWay *way);
     
     void query_timer_start();
     void query_timer_stop();
@@ -78,16 +90,27 @@ class MapOperation {
         ADD_POLYVERTEX,
         CLEAR_POLYVERTEX,
         QUERY_TAG,
+        SET_SHORTESTPATH_START,
+        SET_SHORTESTPATH_END,
+        RUN_SHORTESTPATH,
+        SHOW_SHORTESTPATH_RESULT,
+        CLEAR_SHORTESTPATH_VERTEX,
     };
 
     MapData *md;
     MapGraphics *mg;
     MapGUI *mgui;
+    MapShortestPath *msp;
     
     MapNode *snode; // selected node
     MapNode *nnode[MAX_KBDNUM]; // numbered node
     MapWay *sway; // selected way
     MapWay *nway[MAX_KBDNUM]; // numbered way
+    
+    MapNode *sp_start, *sp_end; // shortest-path start/end node
+    std::vector<MapLine *> sp_result;
+    double sp_mindist, sp_time;
+    int sp_algo;
     
     std::vector<MapPoint> pvl; // poly vertex list
     

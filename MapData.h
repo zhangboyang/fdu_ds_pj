@@ -11,11 +11,14 @@
 #include <map>
 #include <string>
 
-const double dist_factor = 4.0009e7 / 360; // from lat to meters
-
 class MapData {
+    public:
+    static const double dist_factor = 4.0009e7 / 360; // from lat to meters, earth constant
+    
     private:
-    std::vector<MapNode *> nl; // l: object list
+    friend class MapShortestPath;
+    
+    std::vector<MapNode *> nl; // node list, public because MapShortestPath
     std::vector<std::vector<MapLine *> > ll; // line list by level
     std::vector<MapWay *> wl;
     std::vector<MapRelation *> rl;
@@ -32,6 +35,7 @@ class MapData {
     int tot_lvl;
     
     public:
+
     MapDict<MapWay *> wd; // dict of ways
     MapDict<MapNode *> nd; // dict of nodes
     
@@ -68,6 +72,8 @@ class MapData {
     void set_node_coord_by_geo(MapNode *node, double lat, double lon);
     MapNode *get_node_by_id(LL id);
     bool tag_key_is_name(const std::string &key); // return true is the tag type is name
+    std::string get_area_string(double area);
+    std::string get_length_string(double length);
     
     void prepare(); // prepare for reading data
     void construct(); // construct after reading data
