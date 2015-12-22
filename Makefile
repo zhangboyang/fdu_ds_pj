@@ -1,9 +1,16 @@
 CPP_FILES := $(wildcard *.cpp)
 OBJ_FILES := $(notdir $(CPP_FILES:.cpp=.o))
 
-# useful flags when debugging: -g -O0 -DDEBUG -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC
-CXXFLAGS := $(shell xml2-config --cflags) $(shell wx-config --cxxflags) -Wall -g -O2
-LD_FLAGS := $(CXXFLAGS) -lGL -lGLU -lglut $(shell xml2-config --libs) $(shell wx-config --libs) -lprofiler -ltcmalloc
+# useful g++ flags when debugging: -g -O0 -DDEBUG -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC
+# useful linking flags (google pprof): -lprofiler -ltcmalloc
+CXXFLAGS := $(shell xml2-config --cflags) $(shell wx-config --cxxflags) -Wall -g -O0 -DDEBUG
+ifeq ($(OS),Windows_NT)
+	CXXFLAGS += -DZBY_OS_WINDOWS
+	LD_FLAGS := $(CXXFLAGS) -lopengl32 -lglu32 -lglew32 -lfreeglut $(shell xml2-config --libs) $(shell wx-config --libs)
+else
+	CXXFLAGS += -DZBY_OS_LINUX
+	LD_FLAGS := $(CXXFLAGS) -lGL -lGLU -lGLEW -lglut $(shell xml2-config --libs) $(shell wx-config --libs) -lprofiler -ltcmalloc
+endif
 CC_FLAGS := -MMD -MP $(CXXFLAGS)
 EXEC_FILE := pj
 

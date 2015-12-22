@@ -1,8 +1,16 @@
+#ifdef ZBY_OS_LINUX
 #include <sys/time.h>
 #include <time.h>
+#endif
+
+#ifdef ZBY_OS_WINDOWS
+#include <windows.h>
+#endif
+
 #include "common.h"
 #include "myclock.h"
 
+#ifdef ZBY_OS_LINUX
 static int init_flag = 0;
 static struct timespec ts0;
 
@@ -18,7 +26,7 @@ double myclock() // double should enough if you don't run 1e6 seconds (about 11 
 {
     if (!init_flag) {
         init_flag = 1;
-        clock_gettime(CLOCK_REALTIME, &ts0);
+        clock_gettime(CLOCK_REALTIME, &ts0); // linux only
     }
     
     struct timespec ts;
@@ -26,3 +34,23 @@ double myclock() // double should enough if you don't run 1e6 seconds (about 11 
     LL us = ts_minus(&ts, &ts0);
     return us / 1000.0;
 }
+#endif
+
+
+#ifdef ZBY_OS_WINDOWS
+static int init_flag = 0;
+static LARGE_INTEGER t0, freq;
+
+double myclock()
+{
+    if (!init_flag) {
+        init_flag = 1;
+        QueryPerformanceFrequency(&freq); 
+        QueryPerformanceCounter(&t0);
+    }
+    LARGE_INTEGER t1;
+    QueryPerformanceCounter(&t1);
+    LL t = t1.QuadPart - t0.QuadPart;
+    return t * 1000.0 / freq.QuadPart;
+}
+#endif

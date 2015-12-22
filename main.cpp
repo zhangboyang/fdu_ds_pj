@@ -28,14 +28,16 @@ static MapOperation mo;
 
 int main(int argc, char *argv[])
 {
+    #ifdef ZBY_OS_LINUX
     setlocale(LC_ALL, "zh_CN.UTF-8");
+    #endif
     
-    //int test(); test(); return 0;
     #ifdef ENABLE_HEAP_PROFILE
     HeapProfilerStart("pj_heap");
     #endif
     
     cfgp.load("config.txt");
+    
     // load level configurations
     int tot_lvl;
     tot_lvl = str2LL(cfgp.query("LEVEL_TOTAL"));
@@ -109,7 +111,6 @@ int main(int argc, char *argv[])
                  &mg.wrcolor[0], &mg.wrcolor[1], &mg.wrcolor[2]) != 3)
         fail("can't parse wrcolor");
     mg.wrthick = str2double(cfgp.query("WAY_RESULT_THICK"));
-    
     for (int num = 0; num < MapOperation::MAX_KBDNUM; num++) {
         char buf[MAXLINE];
         sprintf(buf, "SELECTED_COLOR_NUM%d", num);

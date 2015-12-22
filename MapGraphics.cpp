@@ -1,4 +1,4 @@
-#define GL_GLEXT_PROTOTYPES
+#include <GL/glew.h>
 #include <GL/glut.h>
 #include <cmath>
 #include <cstdio>
@@ -687,6 +687,19 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     glutInitWindowSize(window_width, window_height);
     glutCreateWindow(title);
     
+    GLenum glewerr = glewInit();
+    if (glewerr != GLEW_OK) {
+        fail("glewInit() failed : %s", glewGetErrorString(glewerr));
+    }
+    
+    if (!(GLEW_VERSION_1_5)) {
+        const char *glstr;
+        glstr = (const char *) glGetString(GL_VENDOR); printf("GL_VENDOR: %s\n", glstr);
+        glstr = (const char *) glGetString(GL_RENDERER); printf("GL_RENDERER: %s\n", glstr);
+        glstr = (const char *) glGetString(GL_VERSION); printf("GL_VERSION: %s\n", glstr);
+        fail("OpenGL version is too low to run this program.");
+    }
+
     glutSpecialFunc(special_keyevent_wrapper);
     glutKeyboardFunc(keyevent_wrapper);
     glutMouseFunc(mouseupdown_wrapper);
