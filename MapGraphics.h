@@ -13,9 +13,16 @@ class MapGraphics {
     
     double rtminx, rtmaxx, rtminy, rtmaxy;
     double dminx, dmaxx, dminy, dmaxy;
+    bool is_dragging_map;
     int window_width, window_height;
     std::vector<std::pair<std::pair<double, double>, int> > display_stack; // ((center_x, center_y), zoom_level)
     int zoom_level;
+    double rtree_query_time;
+
+    std::vector<double> refresh_time; // last redraw time, in ms
+    double last_operation_time;
+    int vertex_count;
+    std::string last_redraw_str;
     
     MapOperation *mo;
     MapData *md;
@@ -26,11 +33,12 @@ class MapGraphics {
         float x, y;
         float r, g, b;
     };
-    unsigned ibuffer, vbuffer; // gl buffers
-    std::map<float, std::pair<std::vector<vnode>, std::vector<unsigned> > > tvil; // thickness map
-    std::vector<vnode> vl; // vertex list
-    std::vector<unsigned> il; // indice list
-    std::vector<std::pair<float, std::pair<int, int> > > tl; // <thickness, <offset, size> >, used when drawing
+    
+    std::vector<unsigned> ibuffer, vbuffer; // gl buffers
+    std::vector<std::map<float, std::pair<std::vector<vnode>, std::vector<unsigned> > > > vct_tvil; // thickness map
+    std::vector<std::vector<vnode> > vct_vl; // vertex list
+    std::vector<std::vector<unsigned> > vct_il; // indice list
+    std::vector<std::vector<std::pair<float, std::pair<int, int> > > > vct_tl; // <thickness, <offset, size> >, used when drawing
     
     void trans_gcoord(double x, double y, double *gx, double *gy);
     double get_display_resolution();
@@ -40,6 +48,8 @@ class MapGraphics {
     
     void map_operation(MapOperation::MapOperationCode op);
     
+    void set_kbd_specialkey();
+    
     void set_mouse_coord(int x, int y);
     void mouse_event(bool use_last_op, int button, int state, int x, int y);
     
@@ -47,12 +57,10 @@ class MapGraphics {
     void highlight_point(MapNode *node, double size, float color[], float thick);
     void draw_way(MapWay *way, bool force_level = false);
     void draw_vertex(double x, double y);
-    void put_ways_to_buffer();
-
-    std::vector<double> refresh_time; // last redraw time, in ms
-    double last_operation_time;
-    int vertex_count;
-    std::string last_redraw_str;
+    void reload_vertex();
+    void reload_dwl(double minx, double maxx, double miny, double maxy); // query r-tree and reload dwl
+    void load_current_level_buffer();
+    void show_loading_screen();
         
     public:
     std::string msg;
@@ -60,10 +68,14 @@ class MapGraphics {
     std::vector<MapLine *> dll; // draw line list
     std::vector<MapWay *> dwl; // draw way list
     
-    int clvl; // current display level
+    int clvl, last_clvl; // current display level
+    int tlvl; // total display level
     double mx, my; // mouse x, mouse y
+    double last_mx, last_my;
     int kbd_num;
+    int kbd_shift;
     int show_rtree;
+    int tab_flag;
     
     float pcolor[3]; // poly color
     float pthickness;
@@ -88,6 +100,10 @@ class MapGraphics {
     int initial_window_height;
     double move_step;
     double zoom_step;
+    int use_rtree_for_drawing;
+    int use_double_buffer;
+    int mouse_btn_zoomin;
+    int mouse_btn_zoomout;
 
     void target(MapData *md);
     void target_gui(MapGUI *mgui);
@@ -98,12 +114,13 @@ class MapGraphics {
     void push_display_range();
     void pop_display_range();
     void move_display_range(int x, int y);
-    void zoom_display_range(int f);
+    void zoom_display_range(int f, bool by_mouse = false);
     //void zoom_display_by_size(double sizex, double sizey);
     void move_display_to_point(double gx, double gy);
     void reset_display_range();
     void center_way(MapWay *way);
     void center_point(MapNode *node);
+    void drag_map();
         
     void redraw();
     void reshape(int width, int height);

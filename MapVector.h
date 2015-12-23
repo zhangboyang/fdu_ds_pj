@@ -2,6 +2,7 @@
 #define ZBY_MAPVECTOR_H
 #include "common.h"
 #include "MapRect.h"
+#include "MapObject.h"
 #include <vector>
 #include <cmath>
 
@@ -9,6 +10,7 @@ struct MapVector {
     double x, y;
     MapVector() {}
     MapVector(double x, double y) { MapVector::x = x; MapVector::y = y; }
+    MapVector(MapNode *node) { x = node->x; y = node->y; }
     MapVector operator - (const MapVector &b) const { return MapVector(x - b.x, y - b.y); }
     MapVector operator + (const MapVector &b) const { return MapVector(x + b.x, y + b.y); }
     MapRect get_rect() { return MapRect(x, x, y, y); }

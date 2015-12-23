@@ -1,5 +1,5 @@
 #include <GL/glew.h>
-#include <GL/glut.h>
+#include <GL/freeglut.h>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -56,9 +56,8 @@ void MapGraphics::update_current_display_level()
 
 void MapGraphics::trans_gcoord(double x, double y, double *gx, double *gy)
 {
-    // important, if you change this, please also change print_string().
-    *gx = x - dminx;
-    *gy = y - dminy;
+    *gx = x - md->minx;
+    *gy = y - md->miny;
 }
 /*
 void MapGraphics::rtrans_gcoord(double gx, double gy, double *x, double *y)
@@ -133,15 +132,21 @@ void MapGraphics::move_display_range(int x, int y)
     }
 }
 
-void MapGraphics::zoom_display_range(int f)
+void MapGraphics::zoom_display_range(int f, bool by_mouse)
 {
+    double fx = 0.5, fy = 0.5;
+    if (by_mouse) {
+        fx = (mx - dminx) / (dmaxx - dminx);
+        fy = (my - dminy) / (dmaxy - dminy);
+    } 
+    
     double diffx = (dmaxx - dminx) * (1 - pow(zoom_step, f));
-    dmaxx -= diffx / 2;
-    dminx += diffx / 2;
+    dmaxx -= diffx * (1 - fx);
+    dminx += diffx * fx;
     
     double diffy = (dmaxy - dminy) * (1 - pow(zoom_step, f));
-    dmaxy -= diffy / 2;
-    dminy += diffy / 2;
+    dmaxy -= diffy * (1 - fy);
+    dminy += diffy * fy;
     
     zoom_level += f;
 }
@@ -261,6 +266,9 @@ void MapGraphics::draw_way(MapWay *way, bool force_level)
 
 void MapGraphics::print_string(const char *str)
 {
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluOrtho2D(0, dmaxx - dminx, 0, dmaxy - dminy);
     glColor3d(1.0, 1.0, 0.0);
     const double char_height = 13, char_width = 8, padding = 2;
     int cnt = 0;
@@ -294,9 +302,14 @@ void MapGraphics::print_string(const char *str)
             glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *ptr);
 }
 
-void MapGraphics::put_ways_to_buffer()
+void MapGraphics::reload_vertex()
 {
     int vl_size = 0, il_size = 0;
+    std::map<float, std::pair<std::vector<vnode>, std::vector<unsigned> > > &tvil = vct_tvil[clvl];
+    std::vector<vnode> &vl = vct_vl[clvl];
+    std::vector<unsigned> &il = vct_il[clvl];
+    std::vector<std::pair<float, std::pair<int, int> > > &tl = vct_tl[clvl];
+    
     // put vertex and indice to tvil
     for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) {
         MapWay *way = *wit;
@@ -342,9 +355,30 @@ void MapGraphics::put_ways_to_buffer()
         tvl.clear();
         til.clear();
     }
+}
+
+void MapGraphics::reload_dwl(double minx, double maxx, double miny, double maxy)
+{
+    double st_clock;
+    st_clock = myclock();
+    dll.clear();
+    dwl.clear();
+    md->lrt[clvl].find(dll, MapRect(minx, maxx, miny, maxy));
+    for (vector<MapLine *>::iterator lit = dll.begin(); lit != dll.end(); lit++)
+        dwl.push_back((*lit)->way);
+    sort(dwl.begin(), dwl.end());
+    dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
+    rtree_query_time = myclock() - st_clock;
+    printd("reload: %f ms\n", rtree_query_time);
+}
+
+void MapGraphics::load_current_level_buffer()
+{
+    std::vector<vnode> &vl = vct_vl[clvl];
+    std::vector<unsigned> &il = vct_il[clvl];
     
     // vertex
-    glBindBuffer(GL_ARRAY_BUFFER, vbuffer);
+    glBindBuffer(GL_ARRAY_BUFFER, vbuffer[clvl]);
     glVertexPointer(2, GL_FLOAT, sizeof(vnode), 0);
     glColorPointer(3, GL_FLOAT, sizeof(vnode), (const void *) offsetof(vnode, r));
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -352,7 +386,7 @@ void MapGraphics::put_ways_to_buffer()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vnode) * vl.size(), &vl[0], GL_STATIC_DRAW);
     
     // indice
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibuffer[clvl]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned) * il.size(), &il[0], GL_STATIC_DRAW);
 }
 
@@ -367,7 +401,23 @@ void MapGraphics::redraw()
     
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(0, dmaxx - dminx, 0, dmaxy - dminy);
+    if (!is_dragging_map) {
+        double gminx, gmaxx, gminy, gmaxy;
+        trans_gcoord(dminx, dminy, &gminx, &gminy);
+        trans_gcoord(dmaxx, dmaxy, &gmaxx, &gmaxy);
+        printd("range: %f %f %f %f\n", gminx, gmaxx, gminy, gmaxy);
+        gluOrtho2D(gminx, gmaxx, gminy, gmaxy);
+    } else {
+        double diff_mx = last_mx - mx;
+        double diff_my = last_my - my;
+        double tminx, tmaxx, tminy, tmaxy;
+        tminx = dminx + diff_mx; tmaxx = dmaxx + diff_mx;
+        tminy = dminy + diff_my; tmaxy = dmaxy + diff_my;
+        double gminx, gmaxx, gminy, gmaxy;
+        trans_gcoord(tminx, tminy, &gminx, &gminy);
+        trans_gcoord(tmaxx, tmaxy, &gmaxx, &gmaxy);
+        gluOrtho2D(gminx, gmaxx, gminy, gmaxy);
+    }
     
     glShadeModel(GL_FLAT);
     
@@ -375,27 +425,27 @@ void MapGraphics::redraw()
 //    printf("disp-res: %f\n", get_display_resolution());
 //    printf("zoom-level: %d\n", zoom_level);
     
+    bool lvl_changed = false;
     update_current_display_level();
-    
-    double rt_reload_time = -1;
-    if (rtminx != dminx || rtmaxx != dmaxx ||
-        rtminy != dminy || rtmaxy != dmaxy || dll.empty()) { // need re-query r-tree and reload vertex
-        double rt_st_clock, rt_ed_clock;
-        rt_st_clock = myclock();
-        dll.clear();
-        dwl.clear();
-        md->lrt[clvl].find(dll, MapRect(dminx, dmaxx, dminy, dmaxy));
-        for (vector<MapLine *>::iterator lit = dll.begin(); lit != dll.end(); lit++)
-            dwl.push_back((*lit)->way);
-        sort(dwl.begin(), dwl.end());
-        dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
+    if (clvl != last_clvl) lvl_changed = true;
+    last_clvl = clvl;
+        
+    rtree_query_time = -1;
+    // check if we need to reload vertex data
+    if (use_rtree_for_drawing && ( // if all data have been loaded to gpu, no reload needed
+            rtminx != dminx || rtmaxx != dmaxx ||
+            rtminy != dminy || rtmaxy != dmaxy || dll.empty())) { // need re-query r-tree and reload vertex
+        reload_dwl(dminx, dmaxx, dminy, dmaxy);
+        reload_vertex();
+        load_current_level_buffer();
         rtminx = dminx; rtmaxx = dmaxx;
         rtminy = dminy; rtmaxy = dmaxy;
-        put_ways_to_buffer();
-        rt_ed_clock = myclock();
-        rt_reload_time = rt_ed_clock - rt_st_clock;
     }
 
+    // load vertex buffer by current level, only needed when no r-tree
+    if (!use_rtree_for_drawing && lvl_changed)
+        load_current_level_buffer();
+    
     // draw r-tree rectangles
     if (show_rtree) {
         vector<MapRect> rtree_rects;
@@ -414,14 +464,6 @@ void MapGraphics::redraw()
         }
         glEnd();
     }
-    
-    /*dwl.clear();
-    set<MapWay *> wayset;
-    for (vector<MapLine *>::iterator lit = dll.begin(); lit != dll.end(); lit++) {
-        MapWay *way = (*lit)->way;
-        if (wayset.insert(way).second) dwl.push_back(way);
-    }*/
-    //printd("need to draw %lld ways\n", (LL) dwl.size());
     
     bool sway_flag = false;
     // draw numbered ways
@@ -442,18 +484,14 @@ void MapGraphics::redraw()
     }
     // draw normal ways
     // speed is very important, use glDrawElements() instead of glBegin()...glEnd()
+    //std::vector<vnode> &vl = vct_vl[clvl];
+    //std::vector<unsigned> &il = vct_il[clvl];
+    std::vector<std::pair<float, std::pair<int, int> > > &tl = vct_tl[clvl];
     for (vector<pair<float, pair<int, int> > >::iterator tlit = tl.begin(); tlit != tl.end(); tlit++) {
         glLineWidth(tlit->first);
         glDrawElements(GL_LINES, tlit->second.second, GL_UNSIGNED_INT, (const void *) (tlit->second.first * sizeof(unsigned)));
     }
-    /*for (vector<MapWay *>::iterator wit = dwl.begin(); wit != dwl.end(); wit++) { // speed is important
-        MapWay *way = *wit;
-        float r, g, b, thickness;
-        md->wt.query_rgbt(way->waytype, &r, &g, &b, &thickness);
-        glColor3f(r, g, b);
-        glLineWidth(thickness);
-        draw_way(way);
-    }*/
+
     // draw result ways
     for (vector<MapWay *>::iterator wit = mo->wresult.begin(); wit != mo->wresult.end(); wit++) {
         MapWay *way = *wit;
@@ -523,10 +561,11 @@ void MapGraphics::redraw()
 
     // draw messages
     string redraw_str = printf2str(
-        "Level: %d\nWay: %lld\nLine: %lld\nVertex: %d+%d\nOperation: %.2f ms\n",
-        clvl, (LL) dwl.size(), (LL) dll.size(), vertex_count, (int) vl.size(), last_operation_time);
-    if (rt_reload_time >= 0) { // vertex reloaded
-        redraw_str += printf2str("Reload: %.2f ms\n", rt_reload_time);
+        "Level: %d\nWay: %lld\nLine: %lld\nVertex: %d+%d\nSelect: %s\nOperation: %.2f ms\n",
+            clvl, (LL) dwl.size(), (LL) dll.size(), vertex_count, (int) vct_vl[clvl].size(), 
+            tab_flag ? "Way" : "Node", last_operation_time);
+    if (rtree_query_time >= 0) { // vertex reloaded
+        redraw_str += printf2str("R-tree: %.2f ms\n", rtree_query_time);
     }
     
     string snode_str;
@@ -550,20 +589,23 @@ void MapGraphics::redraw()
         }
         sway_str += printf2str("SP: %s\n", sway->on_shortest_path ? "YES" : "NO");
     }
-    
+    string shortestpath_str;
+    if (!mo->sp_report.empty()) {
+        shortestpath_str = "== Shortest Path ==\n" + mo->sp_report + '\n';
+    }
     
     string str_to_print = 
         "== Last Frame ==\n" + last_redraw_str +
         "== This Frame ==\n" + redraw_str +
-        snode_str + sway_str;
+        snode_str + sway_str + shortestpath_str;
     if (!msg.empty()) str_to_print.append("== Message ==\n" + msg);
     print_string(str_to_print.c_str());
     
     glFinish();
-    glFlush();
+    if (use_double_buffer) glutSwapBuffers(); else glFlush();
     
     ed_clock = myclock();
-    
+            
     // calculate fps
     double cur_redraw_time = ed_clock - st_clock;
     double cur_refresh_time = cur_redraw_time + last_operation_time;
@@ -580,10 +622,16 @@ void MapGraphics::redraw()
     last_operation_time = 0;
 }
 
+void MapGraphics::set_kbd_specialkey()
+{
+    int mkey = glutGetModifiers();
+    kbd_shift = mkey & GLUT_ACTIVE_SHIFT;
+}
 void MapGraphics::special_keyevent(int key, int x, int y)
 {
     set_mouse_coord(x, y);
     MapOperation::MapOperationCode op;
+    set_kbd_specialkey();
     switch (key) {
         case GLUT_KEY_F1: op = MapOperation::RESET_VIEW; break;
         case GLUT_KEY_F2: op = MapOperation::CLEAR_ALL; break;
@@ -614,8 +662,7 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
     MapOperation::MapOperationCode op;
     char kbd_char = key;
     if (isupper(kbd_char)) kbd_char = kbd_char - 'A' + 'a';
-    int mkey = glutGetModifiers();
-    int shift = mkey & GLUT_ACTIVE_SHIFT;
+    set_kbd_specialkey();
     switch (kbd_char) { // convert SHIFT+NUM to NUM
         case '!': kbd_char = '1'; break;
         case '@': kbd_char = '2'; break;
@@ -631,7 +678,7 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
     if (isdigit(kbd_char)) {
         kbd_num = kbd_char == '0' ? 9 : kbd_char - '1';
         assert(kbd_num < MapOperation::MAX_KBDNUM);
-        if (shift)
+        if (kbd_shift)
             op = MapOperation::NUMBER_POINT;
         else
             op = MapOperation::CENTER_NUM_POINT;
@@ -639,7 +686,7 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         const char *s = "qwertyuiop";
         kbd_num = strchr(s, kbd_char) - s;
         assert(kbd_num < MapOperation::MAX_KBDNUM);
-        if (shift)
+        if (kbd_shift)
             op = MapOperation::NUMBER_WAY;
         else
             op = MapOperation::CENTER_NUM_WAY;
@@ -656,6 +703,7 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case 'a': op = MapOperation::SET_SHORTESTPATH_START; break;
         case 's': op = MapOperation::SET_SHORTESTPATH_END; break;
         case 'd': op = MapOperation::CLEAR_SHORTESTPATH_VERTEX; break;
+        case '\t': tab_flag ^= 1; op = MapOperation::NOP; break;
         default: printd("unknown key %c\n", key); return;
     }
     map_operation(op);
@@ -670,19 +718,47 @@ void MapGraphics::set_mouse_coord(int x, int y)
 void MapGraphics::mouse_event(bool use_last_op, int button, int state, int x, int y)
 {
     MapOperation::MapOperationCode op;
+    set_kbd_specialkey();
+    set_mouse_coord(x, y);
     if (use_last_op) {
         op = last_mouse_op;
     } else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
-        op = MapOperation::SELECT_WAY;
+        if (tab_flag) op = MapOperation::SELECT_WAY;
+        else op = MapOperation::SELECT_POINT;
     } else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        op = MapOperation::SELECT_POINT;
+        if (!use_last_op) { // map dragging start
+            last_mx = mx; last_my = my;
+            is_dragging_map = true;
+        }
+        return;
+    } else if (button == mouse_btn_zoomin && state == GLUT_DOWN) {
+        op = MapOperation::ZOOM_IN_BY_MOUSE;
+    } else if (button == mouse_btn_zoomout && state == GLUT_DOWN) {
+        op = MapOperation::ZOOM_OUT_BY_MOUSE;
+    } else if (state == GLUT_UP && is_dragging_map) {
+        is_dragging_map = false; // map dragging stopped
+        double diffmx = last_mx - mx;
+        double diffmy = last_my - my;
+        dminx += diffmx; dminy += diffmy;
+        dmaxx += diffmx; dmaxy += diffmy;
+        glutPostRedisplay();
+        return;
     } else {
-        printd("unknown mouse event %d %d\n", button, state);
+        last_mouse_op = MapOperation::NOP;
+        printd("unknown mouse event %d %d %d\n", button, state, !!kbd_shift);
         return;
     }
     last_mouse_op = op;
-    set_mouse_coord(x, y);
     map_operation(op);
+}
+
+void MapGraphics::show_loading_screen()
+{
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    print_string("Loading, please wait ...");
+    glFinish();
+    if (use_double_buffer) glutSwapBuffers(); else glFlush();
 }
 
 void MapGraphics::mouseupdown(int button, int state, int x, int y) { mouse_event(false, button, state, x, y); }
@@ -727,15 +803,28 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     
     show_rtree = 0;
     last_operation_time = 0;
+    tab_flag = 0;
+    is_dragging_map = false;
     mo->clear_all();
     window_width = initial_window_height * md->map_ratio;
     window_height = initial_window_height;
     reset_display_range();
     
+    tlvl = md->ml.get_level_count();
+    printd("tvil = %d\n", tlvl);
+    vbuffer.resize(tlvl);
+    ibuffer.resize(tlvl);
+    vct_tvil.resize(tlvl);
+    vct_vl.resize(tlvl);
+    vct_il.resize(tlvl);
+    vct_tl.resize(tlvl);
     
     /* glut things */
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    if (use_double_buffer)
+        glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
+    else
+        glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
     glutInitWindowSize(window_width, window_height);
     glutCreateWindow(title);
     
@@ -743,16 +832,14 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     if (glewerr != GLEW_OK) {
         fail("glewInit() failed : %s", glewGetErrorString(glewerr));
     }
-
-    const char *glstr;
-    printf("opengl information:\n");
-    glstr = (const char *) glGetString(GL_VENDOR); printf(" vendor: %s\n", glstr ? glstr : "null");
-    glstr = (const char *) glGetString(GL_RENDERER); printf(" renderer: %s\n", glstr ? glstr : "null");
-    glstr = (const char *) glGetString(GL_VERSION); printf(" version: %s\n", glstr ? glstr : "null");
-    glstr = (const char *) glGetString(GL_SHADING_LANGUAGE_VERSION); printf("  shading: %s\n", glstr ? glstr : "null");
-    
     if (!(GLEW_VERSION_1_5)) {
-        fail("OpenGL version is too low to run this program.");
+        const char *glstr;
+        printf("opengl information:\n");
+        glstr = (const char *) glGetString(GL_VENDOR); printf(" vendor: %s\n", glstr ? glstr : "null");
+        glstr = (const char *) glGetString(GL_RENDERER); printf(" renderer: %s\n", glstr ? glstr : "null");
+        glstr = (const char *) glGetString(GL_VERSION); printf(" version: %s\n", glstr ? glstr : "null");
+        glstr = (const char *) glGetString(GL_SHADING_LANGUAGE_VERSION); printf(" shading: %s\n", glstr ? glstr : "null");
+        fail("opengl version is too low to run this program. (opengl 1.5 required)");
     }
 
     glutSpecialFunc(special_keyevent_wrapper);
@@ -763,17 +850,31 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     glutReshapeFunc(reshape_wrapper);
     //glutIdleFunc(redraw_wrapper);
     
-    glGenBuffers(1, &vbuffer);
-    glGenBuffers(1, &ibuffer);
+    if (use_double_buffer) show_loading_screen();
+    show_loading_screen();
+    
+    glGenBuffers(tlvl, &vbuffer[0]);
+    glGenBuffers(tlvl, &ibuffer[0]);
+    if (!use_rtree_for_drawing) {
+        timing_start("load vertex data");
+        for (clvl = 0; clvl < tlvl; clvl++) {
+            reload_dwl(md->minx, md->maxx, md->miny, md->maxy);
+            reload_vertex();
+        }
+        dwl.clear();
+        dll.clear();
+        timing_end();
+    }
+    
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     
     msg = "Welcome to ZBY's Map\n";
-    /*#ifdef DEBUG
+
+    const char *glstr;
     glstr = (const char *) glGetString(GL_VENDOR); if (glstr) { msg += "Vendor: "; msg += glstr; msg += '\n';}
     glstr = (const char *) glGetString(GL_RENDERER); if (glstr) { msg += "Renderer: "; msg += glstr; msg += '\n';}
     glstr = (const char *) glGetString(GL_VERSION); if (glstr) { msg += "Version: "; msg += glstr; msg += '\n';}
     glstr = (const char *) glGetString(GL_SHADING_LANGUAGE_VERSION); if (glstr) { msg += "Shading: "; msg += glstr; msg += '\n'; }
-    #endif*/
     
     glutMainLoop(); // never return
     assert(0);

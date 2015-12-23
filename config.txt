@@ -14,9 +14,14 @@ LINE_DETAIL_DIST_HIGH_LIMIT_FACTOR=0.01
 LINE_DETAIL_ANGLE_LIMIT=10
 
 // graphics settings
+// USE_RTREE_FOR_DRAWING: use r-tree when drawing (slow data transmission from cpu to gpu)
 // SELECTED_COLOR: color of selected object (R|G|B)
 // SELECTED_POINT_RECT_SIZE: size of the rectangle of selected node
 
+USE_RTREE_FOR_DRAWING=1
+USE_DOUBLE_BUFFER=0
+MOUSE_BUTTON_ZOOMIN=3
+MOUSE_BUTTON_ZOOMOUT=4
 INITIAL_WINDOW_HEIGHT=500
 MOVE_STEP=0.1
 ZOOM_STEP=0.8

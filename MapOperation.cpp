@@ -383,23 +383,26 @@ wstring MapOperation::get_way_string(MapWay *way)
     return ret;
 }
 
-void MapOperation::set_shortestpath_start()
+MapNode *MapOperation::choose_nearest_sp_node() // choose nearest node which on shortest path
 {
-    if (snode->on_shortest_path)
-        sp_start = snode;
-    else
-        mg->msg.append("ERROR:\n  No highway connected to this node\n");
-}
-void MapOperation::set_shortestpath_end()
-{
-    if (snode->on_shortest_path)
-        sp_end = snode;
-    else
-        mg->msg.append("ERROR:\n  No highway connected to this node\n");
+    MapPoint P(mg->mx, mg->my);
+    MapNode *ret = NULL;
+    double distsq = F_INF;
+    for (vector<MapLine *>::iterator lit = mg->dll.begin(); lit != mg->dll.end(); lit++) {
+        MapLine *line = *lit;
+        MapPoint A(line->p1), B(line->p2);
+        double adistsq = lensq(A - P), bdistsq = lensq(B - P);
+        if (line->p1->on_shortest_path && adistsq < distsq) { ret = line->p1; distsq = adistsq; }
+        if (line->p2->on_shortest_path && bdistsq < distsq) { ret = line->p2; distsq = bdistsq; }
+    }
+    return ret;
 }
 
+void MapOperation::set_shortestpath_start() { sp_start = choose_nearest_sp_node(); }
+void MapOperation::set_shortestpath_end() { sp_end = choose_nearest_sp_node(); }
+
 void MapOperation::clear_shortestpath_vertex() { sp_start = sp_end = NULL; }
-void MapOperation::clear_shortestpath_result() { sp_result.clear(); }
+void MapOperation::clear_shortestpath_result() { sp_result.clear(); sp_report.clear(); }
 void MapOperation::show_shortestpath_result()
 {
     if (!sp_result.empty()) {
@@ -437,8 +440,8 @@ void MapOperation::run_shortestpath()
         return;
     }
     sp_mindist *= MapData::dist_factor;
-    mg->msg.append(printf2str("Shortest Path Result\nAlgorithm: %s\n  Distance: %s\n  Time: %.2f ms",
-                                msp->get_algo_name(sp_algo), md->get_length_string(sp_mindist).c_str(), sp_time));
+    sp_report = printf2str("Algorithm: %s\nDistance: %s\nTime: %.2f ms",
+                                msp->get_algo_name(sp_algo), md->get_length_string(sp_mindist).c_str(), sp_time);
     //show_shortestpath_result();
 }
 
@@ -457,6 +460,7 @@ void MapOperation::operation(MapOperationCode op)
     assert(md);
     assert(mg);
     assert(mgui);
+    if (op == NOP) return;
     mg->msg.clear();
 //    mg->msg.append("Hello World!\n");
     if (op == POP_DISPLAY) {
@@ -470,6 +474,8 @@ void MapOperation::operation(MapOperationCode op)
             case MOVE_RIGHT: mg->move_display_range(1, 0); break;
             case ZOOM_OUT: mg->zoom_display_range(-1); break;
             case ZOOM_IN: mg->zoom_display_range(1); break;
+            case ZOOM_OUT_BY_MOUSE: mg->zoom_display_range(-1, true); break;
+            case ZOOM_IN_BY_MOUSE: mg->zoom_display_range(1, true); break;
             case RESET_VIEW: mg->reset_display_range(); break;
             case TOGGLE_RTREE: mg->show_rtree ^= 1; break;
             case CENTER_NUM_POINT: mg->center_point(nnode[mg->kbd_num]); break;
@@ -494,6 +500,7 @@ void MapOperation::operation(MapOperationCode op)
             case RUN_SHORTESTPATH: run_shortestpath(); break;
             case SHOW_SHORTESTPATH_RESULT: show_shortestpath_result(); break;
             case CLEAR_SHORTESTPATH_VERTEX: clear_shortestpath_vertex(); break;
+
             default: assert(0); break;
         }
     }

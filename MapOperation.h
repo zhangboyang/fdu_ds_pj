@@ -36,6 +36,7 @@ class MapOperation {
     void clear_results();
     void clear_select();
     
+    MapNode *choose_nearest_sp_node();
     void set_shortestpath_start();
     void set_shortestpath_end();
     void run_shortestpath();
@@ -69,8 +70,9 @@ class MapOperation {
     static const int MAX_KBDNUM = 10;
     
     enum MapOperationCode {
+        NOP,
         MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT,
-        ZOOM_OUT, ZOOM_IN,
+        ZOOM_OUT, ZOOM_IN, ZOOM_OUT_BY_MOUSE, ZOOM_IN_BY_MOUSE,
         RESET_VIEW,
         TOGGLE_RTREE,
         QUERY_NAME,
@@ -111,6 +113,7 @@ class MapOperation {
     std::vector<MapLine *> sp_result;
     double sp_mindist, sp_time;
     int sp_algo;
+    std::string sp_report;
     
     std::vector<MapPoint> pvl; // poly vertex list
     
