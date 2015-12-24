@@ -97,8 +97,8 @@ void MapShortestPath::run_dijkstra()
 
 
 // the A-star algorithm
-//#define f(u, v) (vlen(MapPoint(u) - MapPoint(v)))
-#define f(u, v) (0)
+#define f(u, v) (vlen(MapPoint(u) - MapPoint(v)))
+//#define f(u, v) (0)
 #define estimated_dist(v) ((v)->estimated_dist) // NOT initialized
 class comp_by_estimated_dist {
     public:

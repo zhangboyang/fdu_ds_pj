@@ -417,7 +417,7 @@ void MapOperation::set_shortestpath_start() { sp_start = choose_nearest_sp_node(
 void MapOperation::set_shortestpath_end() { sp_end = choose_nearest_sp_node(); }
 
 void MapOperation::clear_shortestpath_vertex() { sp_start = sp_end = NULL; }
-void MapOperation::clear_shortestpath_result() { sp_result.clear(); sp_report.clear(); }
+void MapOperation::clear_shortestpath_result() { sp_result.clear(); sp_report.clear(); msp->prepare(); }
 void MapOperation::show_shortestpath_result()
 {
     if (!sp_result.empty()) {

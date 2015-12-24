@@ -23,7 +23,7 @@ class MapShortestPath {
     void run_spfa();
     void run_astar();
     void run_bfs();
-    void prepare();
+    
     bool get_result(std::vector<MapLine *> &result, double &mindist); // return false is there is no path, append edges to result
     bool run_algorithm(algo_ptr algo, std::vector<MapLine *> &result, double &mindist, double &time, double &prepare_time);
     
@@ -33,6 +33,8 @@ class MapShortestPath {
     MapData *md;
     
     void target(MapData *md);
+    void prepare(); // init
+    
     void set_start(MapNode *S);
     void set_end(MapNode *T);
     const char *get_algo_name(int type);
