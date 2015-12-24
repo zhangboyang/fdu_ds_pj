@@ -8,7 +8,7 @@
 #include <vector>
 
 #ifdef DEBUG
-#define WITH_BRUTE_FORCE
+//#define WITH_BRUTE_FORCE
 #endif
 
 #ifdef DEBUG

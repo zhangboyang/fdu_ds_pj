@@ -3,7 +3,7 @@ OBJ_FILES := $(notdir $(CPP_FILES:.cpp=.o))
 
 # useful g++ flags when debugging: -g -O0 -DDEBUG -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC
 # useful linking flags (google pprof): -lprofiler -ltcmalloc
-CXXFLAGS := $(shell xml2-config --cflags) $(shell wx-config --cxxflags) -Wall -g -O2 -DDEBUG
+CXXFLAGS := $(shell xml2-config --cflags) $(shell wx-config --cxxflags) -Wall -g -O2
 ifeq ($(OS),Windows_NT)
 # compile options for wxwidgets: ./configure --prefix=/mingw --disable-all-features --enable-gui --disable-debug --enable-mousewheel --enable-wxdib --enable-image --enable-menus --without-subdirs BUILD=release --enable-stattext --enable-textctrl --enable-button --enable-textdlg --enable-uxtheme --enable-dynlib
 	CXXFLAGS += -DZBY_OS_WINDOWS

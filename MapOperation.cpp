@@ -304,21 +304,13 @@ void MapOperation::clear_select()
 void MapOperation::select_way()
 {
     double cx = mg->mx, cy = mg->my;
-
     double mdistsq = F_INF;
     MapPoint P(cx, cy);
-    for (vector<MapWay *>::iterator wit = mg->dwl.begin(); wit != mg->dwl.end(); wit++) {
-        MapWay *way = *wit;
-        MapPoint A, B;
-        for (vector<MapNode *>::iterator nit = way->nl[mg->clvl].begin(); nit != way->nl[mg->clvl].end(); nit++) {
-            MapNode *node = *nit;
-            B = MapPoint(node->x, node->y);
-            if (nit != way->nl[mg->clvl].begin()) {
-                double distsq = distsq_p2s(P, A, B);
-                if (distsq < mdistsq) { mdistsq = distsq; sway = way; }
-            }
-            A = B;
-        }
+    for (vector<MapLine *>::iterator lit = mg->dll.begin(); lit != mg->dll.end(); lit++) {
+        MapLine *line = *lit;
+        MapPoint A(line->p1), B(line->p2);
+        double distsq = distsq_p2s(P, A, B);
+        if (distsq < mdistsq) { mdistsq = distsq; sway = line->way; }
     }
 }
 
@@ -328,13 +320,14 @@ void MapOperation::select_point()
     double cx = mg->mx, cy = mg->my;
 
     double mdistsq = F_INF;
-    for (vector<MapWay *>::iterator wit = mg->dwl.begin(); wit != mg->dwl.end(); wit++) {
-        MapWay *way = *wit;
-        for (vector<MapNode *>::iterator nit = way->nl[mg->clvl].begin(); nit != way->nl[mg->clvl].end(); nit++) {
-            MapNode *node = *nit;
-            double distsq = sq(cx - node->x) + sq(cy - node->y);
-            if (distsq < mdistsq) { mdistsq = distsq; snode = node; }
-        }
+    for (vector<MapLine *>::iterator lit = mg->dll.begin(); lit != mg->dll.end(); lit++) {
+        MapLine *line = *lit;
+        MapNode *node = line->p1;
+        double distsq = sq(cx - node->x) + sq(cy - node->y);
+        if (distsq < mdistsq) { mdistsq = distsq; snode = node; }
+        node = line->p2;
+        distsq = sq(cx - node->x) + sq(cy - node->y);
+        if (distsq < mdistsq) { mdistsq = distsq; snode = node; }
     }
 }
 

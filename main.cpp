@@ -95,6 +95,7 @@ int main(int argc, char *argv[])
     mg.zoom_bysize_factor = str2double(cfgp.query("ZOOM_BYSIZE_FACTOR"));
     mg.use_rtree_for_drawing = str2LL(cfgp.query("USE_RTREE_FOR_DRAWING"));
     mg.use_double_buffer = str2LL(cfgp.query("USE_DOUBLE_BUFFER"));
+    mg.multisample_level = str2LL(cfgp.query("MULTISAMPLE_LEVEL"));
     mg.mouse_btn_zoomin = str2LL(cfgp.query("MOUSE_BUTTON_ZOOMIN"));
     mg.mouse_btn_zoomout = str2LL(cfgp.query("MOUSE_BUTTON_ZOOMOUT"));
     

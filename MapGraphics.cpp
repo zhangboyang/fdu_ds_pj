@@ -357,19 +357,25 @@ void MapGraphics::reload_vertex()
     }
 }
 
-void MapGraphics::reload_dwl(double minx, double maxx, double miny, double maxy)
+void MapGraphics::reload_dll(double minx, double maxx, double miny, double maxy)
 {
-    double st_clock;
-    st_clock = myclock();
+    double st_clock = myclock();
     dll.clear();
-    dwl.clear();
     md->lrt[clvl].find(dll, MapRect(minx, maxx, miny, maxy));
+    dll_reload_time = myclock() - st_clock;
+    printd("r-tree: %f ms\n", dll_reload_time);
+}
+
+void MapGraphics::reload_dwl()
+{
+    double st_clock = myclock();
+    dwl.clear();
     for (vector<MapLine *>::iterator lit = dll.begin(); lit != dll.end(); lit++)
         dwl.push_back((*lit)->way);
     sort(dwl.begin(), dwl.end());
     dwl.resize(unique(dwl.begin(), dwl.end()) - dwl.begin());
-    rtree_query_time = myclock() - st_clock;
-    printd("reload: %f ms\n", rtree_query_time);
+    dwl_reload_time = myclock() - st_clock;
+    printd("reload: %f ms\n", dwl_reload_time);
 }
 
 void MapGraphics::load_current_level_buffer()
@@ -430,14 +436,16 @@ void MapGraphics::redraw()
     if (clvl != last_clvl) lvl_changed = true;
     last_clvl = clvl;
         
-    rtree_query_time = -1;
-    // check if we need to reload vertex data
-    if (use_rtree_for_drawing && ( // if all data have been loaded to gpu, no reload needed
-            rtminx != dminx || rtmaxx != dmaxx ||
-            rtminy != dminy || rtmaxy != dmaxy || dll.empty())) { // need re-query r-tree and reload vertex
-        reload_dwl(dminx, dmaxx, dminy, dmaxy);
-        reload_vertex();
-        load_current_level_buffer();
+    dwl_reload_time = dll_reload_time = -1;
+    // check if we need to reload line data or vertex data
+    if (rtminx != dminx || rtmaxx != dmaxx ||
+            rtminy != dminy || rtmaxy != dmaxy || dll.empty()) { // need re-query r-tree
+        reload_dll(dminx, dmaxx, dminy, dmaxy);
+        if (use_rtree_for_drawing) { // if all data have been loaded to gpu, no reload needed
+            reload_dwl();
+            reload_vertex();
+            load_current_level_buffer();
+        }
         rtminx = dminx; rtmaxx = dmaxx;
         rtminy = dminy; rtmaxy = dmaxy;
     }
@@ -561,12 +569,12 @@ void MapGraphics::redraw()
 
     // draw messages
     string redraw_str = printf2str(
-        "Level: %d\nWay: %lld\nLine: %lld\nVertex: %d+%d\nSelect: %s\nOperation: %.2f ms\n",
+        "Level: %d\nWay: %lld\nLine: %lld\nVertex: %d+%d\nMouse: %s\nOperation: %.2f ms\n",
             clvl, (LL) dwl.size(), (LL) dll.size(), vertex_count, (int) vct_vl[clvl].size(), 
-            tab_flag ? "Way" : "Node", last_operation_time);
-    if (rtree_query_time >= 0) { // vertex reloaded
-        redraw_str += printf2str("R-tree: %.2f ms\n", rtree_query_time);
-    }
+            tab_flag ? "Select" : "Drag", last_operation_time);
+    if (dll_reload_time >= 0) redraw_str += printf2str("R-tree: %.2f ms\n", dll_reload_time); // vertex reloaded
+    if (dwl_reload_time >= 0) redraw_str += printf2str("Unique: %.2f ms\n", dwl_reload_time); // vertex reloaded
+
     
     string snode_str;
     if (mo->snode) {
@@ -722,10 +730,11 @@ void MapGraphics::mouse_event(bool use_last_op, int button, int state, int x, in
     set_mouse_coord(x, y);
     if (use_last_op) {
         op = last_mouse_op;
-    } else if (button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
-        if (tab_flag) op = MapOperation::SELECT_WAY;
-        else op = MapOperation::SELECT_POINT;
-    } else if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+    } else if (tab_flag && button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
+        op = MapOperation::SELECT_WAY;
+    } else if (tab_flag && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        op = MapOperation::SELECT_POINT;
+    } else if (!tab_flag && (button == GLUT_LEFT_BUTTON || button == GLUT_RIGHT_BUTTON) && state == GLUT_DOWN) {
         if (!use_last_op) { // map dragging start
             last_mx = mx; last_my = my;
             is_dragging_map = true;
@@ -741,8 +750,7 @@ void MapGraphics::mouse_event(bool use_last_op, int button, int state, int x, in
         double diffmy = last_my - my;
         dminx += diffmx; dminy += diffmy;
         dmaxx += diffmx; dmaxy += diffmy;
-        glutPostRedisplay();
-        return;
+        op = MapOperation::NOP;
     } else {
         last_mouse_op = MapOperation::NOP;
         printd("unknown mouse event %d %d %d\n", button, state, !!kbd_shift);
@@ -756,7 +764,7 @@ void MapGraphics::show_loading_screen()
 {
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    print_string("Loading, please wait ...");
+    print_string("Loading data, please wait ...");
     glFinish();
     if (use_double_buffer) glutSwapBuffers(); else glFlush();
 }
@@ -821,10 +829,13 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     
     /* glut things */
     glutInit(&argc, argv);
-    if (use_double_buffer)
-        glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
-    else
-        glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+    unsigned int mode = GLUT_RGB;
+    mode |= use_double_buffer ? GLUT_DOUBLE : GLUT_SINGLE;
+    if (multisample_level) {
+        glutSetOption(GLUT_MULTISAMPLE, multisample_level);
+        mode |= GLUT_MULTISAMPLE;
+    }
+    glutInitDisplayMode(mode);
     glutInitWindowSize(window_width, window_height);
     glutCreateWindow(title);
     
@@ -858,7 +869,8 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     if (!use_rtree_for_drawing) {
         timing_start("load vertex data");
         for (clvl = 0; clvl < tlvl; clvl++) {
-            reload_dwl(md->minx, md->maxx, md->miny, md->maxy);
+            reload_dll(md->minx, md->maxx, md->miny, md->maxy);
+            reload_dwl();
             reload_vertex();
         }
         dwl.clear();
@@ -875,6 +887,15 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     glstr = (const char *) glGetString(GL_RENDERER); if (glstr) { msg += "Renderer: "; msg += glstr; msg += '\n';}
     glstr = (const char *) glGetString(GL_VERSION); if (glstr) { msg += "Version: "; msg += glstr; msg += '\n';}
     glstr = (const char *) glGetString(GL_SHADING_LANGUAGE_VERSION); if (glstr) { msg += "Shading: "; msg += glstr; msg += '\n'; }
+    
+    if (multisample_level) {
+        glEnable(GL_MULTISAMPLE);
+        int real_multisample_level;
+        glGetIntegerv(GL_SAMPLES, &real_multisample_level);
+        if (real_multisample_level != multisample_level) {
+            printf("warning: %dx MSAA is not supported.\n", multisample_level);
+        }
+    }
     
     glutMainLoop(); // never return
     assert(0);

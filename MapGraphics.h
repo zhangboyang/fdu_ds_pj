@@ -17,7 +17,7 @@ class MapGraphics {
     int window_width, window_height;
     std::vector<std::pair<std::pair<double, double>, int> > display_stack; // ((center_x, center_y), zoom_level)
     int zoom_level;
-    double rtree_query_time;
+    double dwl_reload_time, dll_reload_time;
 
     std::vector<double> refresh_time; // last redraw time, in ms
     double last_operation_time;
@@ -58,15 +58,16 @@ class MapGraphics {
     void draw_way(MapWay *way, bool force_level = false);
     void draw_vertex(double x, double y);
     void reload_vertex();
-    void reload_dwl(double minx, double maxx, double miny, double maxy); // query r-tree and reload dwl
+    void reload_dll(double minx, double maxx, double miny, double maxy); // query r-tree
+    void reload_dwl(); // reload dwl
     void load_current_level_buffer();
     void show_loading_screen();
         
     public:
     std::string msg;
     
-    std::vector<MapLine *> dll; // draw line list
-    std::vector<MapWay *> dwl; // draw way list
+    std::vector<MapLine *> dll; // draw line list, can be relied, every redraw reloaded
+    std::vector<MapWay *> dwl; // draw way list, shouldn't be relied, since it's not update when no-rtree drawing
     
     int clvl, last_clvl; // current display level
     int tlvl; // total display level
@@ -102,6 +103,7 @@ class MapGraphics {
     double zoom_step;
     int use_rtree_for_drawing;
     int use_double_buffer;
+    int multisample_level;
     int mouse_btn_zoomin;
     int mouse_btn_zoomout;
 
