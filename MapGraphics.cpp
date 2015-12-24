@@ -567,53 +567,70 @@ void MapGraphics::redraw()
     // draw shortest path src and dest
     if (mo->sp_start) highlight_point(mo->sp_start, sp_vertex_rect_size, sp_src_color, sp_vertex_rect_thick);
     if (mo->sp_end) highlight_point(mo->sp_end, sp_vertex_rect_size, sp_dest_color, sp_vertex_rect_thick);
-
-
+    
+    // draw shortest-path-tree
+    if (show_shortestpath_node) {
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glLineWidth(1.0f);
+        glBegin(GL_LINES);
+        for (vector<MapNode *>::iterator nit = md->nl.begin(); nit != md->nl.end(); nit++) {
+            MapLine *line = (*nit)->from;
+            if (line) {
+                draw_vertex(line->p1->x, line->p1->y);
+                draw_vertex(line->p2->x, line->p2->y);
+            }
+        }
+        glEnd();
+    }
+    
     // draw messages
     string redraw_str = printf2str(
-        "Level: %d\nWay: %lld\nLine: %lld\nVertex: %d+%d\nMouse: %s\nOperation: %.2f ms\n",
+        "Level: %d\nWay: %lld\nLine: %lld\nVertex: %d+%d\nMouse: %s\nSP Algo: %s\nOperation: %.2f ms\n",
             clvl, (LL) dwl.size(), (LL) dll.size(), vertex_count, (int) vct_vl[clvl].size(), 
-            tab_flag ? "Select" : "Drag", last_operation_time);
+            select_flag ? "Select" : "Drag", msp->get_algo_name(mo->sp_algo),last_operation_time);
     if (dll_reload_time >= 0) redraw_str += printf2str("R-tree: %.2f ms\n", dll_reload_time); // vertex reloaded
     if (dwl_reload_time >= 0) redraw_str += printf2str("Unique: %.2f ms\n", dwl_reload_time); // vertex reloaded
 
     
-    string snode_str;
-    if (mo->snode) {
-        snode_str = "== Selected Node ==\n";
-        MapNode *snode = mo->snode;
-        snode_str += printf2str(
-            "ID: %lld\nLat: %f\nLon: %f\nSP: %s\n",
-            snode->id, snode->lat, snode->lon, snode->on_shortest_path ? "YES" : "NO");
-    }
-    string sway_str;
-    if (mo->sway) {
-        sway_str = "== Selected Way ==\n";
-        MapWay *sway = mo->sway;
-        sway_str += printf2str("ID: %lld\n", sway->id);
-        double way_length = sway->calc_length() * MapData::dist_factor;
-        sway_str += "Length: " + md->get_length_string(way_length) + '\n';
-        if (sway->is_closed()) {
-            double way_area = sway->calc_area() * sq(MapData::dist_factor);
-            sway_str += "Ares: " + md->get_area_string(way_area) + '\n';
+    if (show_message) {
+        // construct strings
+        string snode_str;
+        if (mo->snode) {
+            snode_str = "== Selected Node ==\n";
+            MapNode *snode = mo->snode;
+            snode_str += printf2str(
+                "ID: %lld\nLat: %f\nLon: %f\nSP: %s\n",
+                snode->id, snode->lat, snode->lon, snode->on_shortest_path ? "YES" : "NO");
         }
-        sway_str += printf2str("SP: %s\n", sway->on_shortest_path ? "YES" : "NO");
+        string sway_str;
+        if (mo->sway) {
+            sway_str = "== Selected Way ==\n";
+            MapWay *sway = mo->sway;
+            sway_str += printf2str("ID: %lld\n", sway->id);
+            double way_length = sway->calc_length() * MapData::dist_factor;
+            sway_str += "Length: " + md->get_length_string(way_length) + '\n';
+            if (sway->is_closed()) {
+                double way_area = sway->calc_area() * sq(MapData::dist_factor);
+                sway_str += "Ares: " + md->get_area_string(way_area) + '\n';
+            }
+            sway_str += printf2str("SP: %s\n", sway->on_shortest_path ? "YES" : "NO");
+        }
+        string shortestpath_str;
+        if (!mo->sp_report.empty()) {
+            shortestpath_str = "== Shortest Path ==\n" + mo->sp_report;
+        }
+        string query_str;
+        if (!mo->query_report.empty()) {
+            query_str = "== Query ==\n" + mo->query_report;
+        }
+        
+        string str_to_print = 
+            "== Last Frame ==\n" + last_redraw_str +
+            "== This Frame ==\n" + redraw_str +
+            snode_str + sway_str + query_str + shortestpath_str;
+        if (!msg.empty()) str_to_print.append("== Message ==\n" + msg);
+        print_string(str_to_print.c_str());
     }
-    string shortestpath_str;
-    if (!mo->sp_report.empty()) {
-        shortestpath_str = "== Shortest Path ==\n" + mo->sp_report;
-    }
-    string query_str;
-    if (!mo->query_report.empty()) {
-        query_str = "== Query ==\n" + mo->query_report;
-    }
-    
-    string str_to_print = 
-        "== Last Frame ==\n" + last_redraw_str +
-        "== This Frame ==\n" + redraw_str +
-        snode_str + sway_str + query_str + shortestpath_str;
-    if (!msg.empty()) str_to_print.append("== Message ==\n" + msg);
-    print_string(str_to_print.c_str());
     
     glFinish();
     if (use_double_buffer) glutSwapBuffers(); else glFlush();
@@ -648,11 +665,11 @@ void MapGraphics::special_keyevent(int key, int x, int y)
     set_kbd_specialkey();
     switch (key) {
         case GLUT_KEY_F1: op = MapOperation::RESET_VIEW; break;
-        case GLUT_KEY_F2: op = MapOperation::CLEAR_ALL; break;
+        case GLUT_KEY_F2: show_rtree ^= 1; op = MapOperation::NOP; break;
         case GLUT_KEY_F3: op = MapOperation::QUERY_NAME; break;
         case GLUT_KEY_F4: op = MapOperation::QUERY_TAG; break;
         case GLUT_KEY_F5: op = MapOperation::RUN_SHORTESTPATH; break;
-        case GLUT_KEY_F6: op = MapOperation::TOGGLE_RTREE; break;
+        case GLUT_KEY_F6: show_shortestpath_node ^= 1; op = MapOperation::NOP; break;
         case GLUT_KEY_F7: op = MapOperation::SHOW_SHORTESTPATH_RESULT; break;
         case GLUT_KEY_F8: op = MapOperation::SHOW_QUERY_RESULT; break;
         case GLUT_KEY_F9: op = MapOperation::CENTER_SEL_POINT; break;
@@ -713,11 +730,14 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case 'j': op = MapOperation::MOVE_DOWN; break;
         case 'h': op = MapOperation::MOVE_LEFT; break;
         case 'l': op = MapOperation::MOVE_RIGHT; break;
-        case '\x1b': op = MapOperation::POP_DISPLAY; break; // ESC
+        case '\b': op = MapOperation::POP_DISPLAY; break;
+        case '\x1b': op = MapOperation::CLEAR_ALL; break;
         case 'a': op = MapOperation::SET_SHORTESTPATH_START; break;
         case 's': op = MapOperation::SET_SHORTESTPATH_END; break;
         case 'd': op = MapOperation::CLEAR_SHORTESTPATH_VERTEX; break;
-        case '\t': tab_flag ^= 1; op = MapOperation::NOP; break;
+        case '\t': select_flag ^= 1; op = MapOperation::NOP; break;
+        case '`': case '~':  op = MapOperation::SWITCH_SHORTESTPATH_ALGO; break;
+        case '\\': case '|': show_message ^= 1; op = MapOperation::NOP; break;
         default: printd("unknown key %c\n", key); return;
     }
     map_operation(op);
@@ -736,11 +756,11 @@ void MapGraphics::mouse_event(bool use_last_op, int button, int state, int x, in
     set_mouse_coord(x, y);
     if (use_last_op) {
         op = last_mouse_op;
-    } else if (tab_flag && button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
+    } else if (select_flag && button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
         op = MapOperation::SELECT_WAY;
-    } else if (tab_flag && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+    } else if (select_flag && button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
         op = MapOperation::SELECT_POINT;
-    } else if (!tab_flag && (button == GLUT_LEFT_BUTTON || button == GLUT_RIGHT_BUTTON) && state == GLUT_DOWN) {
+    } else if (!select_flag && (button == GLUT_LEFT_BUTTON || button == GLUT_RIGHT_BUTTON) && state == GLUT_DOWN) {
         if (!use_last_op) { // map dragging start
             last_mx = mx; last_my = my;
             is_dragging_map = true;
@@ -816,10 +836,12 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     mgptr = this;
     
     show_rtree = 0;
+    show_shortestpath_node = 0;
     last_operation_time = 0;
-    tab_flag = 0;
+    select_flag = 0;
     is_dragging_map = false;
-    mo->clear_all();
+    show_message = 1;
+    mo->init();
     window_width = initial_window_height * md->map_ratio;
     window_height = initial_window_height;
     reset_display_range();

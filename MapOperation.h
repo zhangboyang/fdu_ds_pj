@@ -43,6 +43,7 @@ class MapOperation {
     void show_shortestpath_result();
     void clear_shortestpath_vertex();
     void clear_shortestpath_result();
+    void switch_shortest_algo();
     
     void query_name();
     void select_way();
@@ -74,7 +75,6 @@ class MapOperation {
         MOVE_UP, MOVE_DOWN, MOVE_LEFT, MOVE_RIGHT,
         ZOOM_OUT, ZOOM_IN, ZOOM_OUT_BY_MOUSE, ZOOM_IN_BY_MOUSE,
         RESET_VIEW,
-        TOGGLE_RTREE,
         QUERY_NAME,
         SELECT_WAY,
         SELECT_POINT,
@@ -97,6 +97,7 @@ class MapOperation {
         RUN_SHORTESTPATH,
         SHOW_SHORTESTPATH_RESULT,
         CLEAR_SHORTESTPATH_VERTEX,
+        SWITCH_SHORTESTPATH_ALGO,
     };
 
     MapData *md;
@@ -111,7 +112,7 @@ class MapOperation {
     
     MapNode *sp_start, *sp_end; // shortest-path start/end node
     std::vector<MapLine *> sp_result;
-    double sp_mindist, sp_time;
+    double sp_mindist, sp_time, sp_prepare_time;
     int sp_algo;
     std::string sp_report; // report is displayed by bitmap string
     std::string query_report;
@@ -123,6 +124,7 @@ class MapOperation {
     std::vector<MapWay *> wresult;
     std::wstring query_description;
     void clear_all();
+    void init();
     void operation(MapOperationCode op);
 };
 

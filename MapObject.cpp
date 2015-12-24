@@ -52,7 +52,7 @@ double MapWay::calc_length()
         MapNode *node = *it;
         B = MapPoint(node->x, node->y);
         if (it != nl[0].begin()) {
-            way_length += len(B - A);
+            way_length += vlen(B - A);
         }
         A = B;
     }

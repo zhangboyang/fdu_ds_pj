@@ -36,8 +36,9 @@ class MapNode : public MapObject {
     double lat, lon;
     
     double dist; // distance for shortest path
-    std::vector<MapLine *> edges; // edges for shortest path algorithm
+    double estimated_dist; // estimated distance (used by A-star)
     MapLine *from; // from which egde to go to this node
+    std::vector<MapLine *> edges; // edges for shortest path algorithm
     int flag; // flag var by shortest path
     bool on_shortest_path; // is this node connect to a way with 'on_shortest_path == true'
     

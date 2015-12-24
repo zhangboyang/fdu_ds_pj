@@ -11,6 +11,7 @@ class MapShortestPath {
         ALGO_SPFA,
         ALGO_DIJKSTRA,
         ALGO_ASTAR,
+        ALGO_BFS,
         ALGO_COUNT, // must be last one
     };
     
@@ -21,9 +22,10 @@ class MapShortestPath {
     void run_dijkstra();
     void run_spfa();
     void run_astar();
+    void run_bfs();
     void prepare();
     bool get_result(std::vector<MapLine *> &result, double &mindist); // return false is there is no path, append edges to result
-    bool run_algorithm(algo_ptr algo, std::vector<MapLine *> &result, double &mindist, double &time);
+    bool run_algorithm(algo_ptr algo, std::vector<MapLine *> &result, double &mindist, double &time, double &prepare_time);
     
     algo_ptr get_algo_ptr(int type);
     
@@ -37,7 +39,7 @@ class MapShortestPath {
     
     // shortest-path, append edges to 'result', save distance to 'mindist', save algo time to 'time', using algorithm 'algo'
     //   return false if no route from start to end
-    bool get_shortest_path(std::vector<MapLine *> &result, double &mindist, double &time, int type);
+    bool get_shortest_path(std::vector<MapLine *> &result, double &mindist, double &time, double &prepare_time, int type);
 };
 
 #endif

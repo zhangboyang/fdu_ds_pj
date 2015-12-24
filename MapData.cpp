@@ -114,11 +114,6 @@ void MapData::construct()
     assert(ll.size() == 0);
     
     timing_start("mapdata construct");
-    
-        // clear maps to save memory
-        map<LL, MapNode *>().swap(nm); // use swap() to make sure memory are freed
-        map<LL, MapWay *>().swap(wm);
-        map<LL, MapRelation *>().swap(rm);
         
         // fetch level count
         tot_lvl = ml.get_level_count();
@@ -178,7 +173,7 @@ void MapData::construct()
                 for (vector<MapNode *>::iterator nit = ++wnl.begin(); nit != wnl.end(); nit++) {
                     MapNode *node = *nit;
                     B = MapPoint(node->x, node->y);
-                    dist += len(B - A);
+                    dist += vlen(B - A);
                     if (Lflag) 
                         ang = fabs(angle(B - A, A - L));
                     else
@@ -245,7 +240,7 @@ void MapData::construct()
             MapLine *line = *lit;
             MapNode *from = line->p1, *to = line->p2;
             MapPoint A(from->x, from->y), B(to->x, to->y);
-            line->len = len(B - A);
+            line->len = vlen(B - A);
         }
         
         // put lines to r-tree

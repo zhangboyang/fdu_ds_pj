@@ -76,7 +76,9 @@ class MapGraphics {
     int kbd_num;
     int kbd_shift;
     int show_rtree;
-    int tab_flag;
+    int show_shortestpath_node;
+    int show_message;
+    int select_flag;
     
     float pcolor[3]; // poly color
     float pthickness;

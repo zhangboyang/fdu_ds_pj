@@ -76,12 +76,12 @@ void MapOperation::query_tag_with_poly()
 
 MapPoint MapOperation::nearby_center;
 
-bool MapOperation::dist_node_filter(MapNode *node) { return lensq(MapPoint(node->x, node->y) - nearby_center) <= nearby_distsq; }
+bool MapOperation::dist_node_filter(MapNode *node) { return vlensq(MapPoint(node->x, node->y) - nearby_center) <= nearby_distsq; }
 bool MapOperation::dist_way_filter(MapWay *way)
 {
     for (vector<MapNode *>::iterator nit = way->nl[0].begin(); nit != way->nl[0].end(); nit++) {
         MapNode *node = *nit;
-        if (lensq(MapPoint(node->x, node->y) - nearby_center) <= nearby_distsq)
+        if (vlensq(MapPoint(node->x, node->y) - nearby_center) <= nearby_distsq)
             return true;
     }
     return false;
@@ -89,7 +89,7 @@ bool MapOperation::dist_way_filter(MapWay *way)
 
 bool MapOperation::sort_node_by_dist(MapNode *a, MapNode *b)
 {
-    return lensq(MapPoint(a->x, a->y) - nearby_center) < lensq(MapPoint(b->x, b->y) - nearby_center);
+    return vlensq(MapPoint(a->x, a->y) - nearby_center) < vlensq(MapPoint(b->x, b->y) - nearby_center);
 }
 
 bool MapOperation::sort_way_by_dist(MapWay *a, MapWay *b)
@@ -97,11 +97,11 @@ bool MapOperation::sort_way_by_dist(MapWay *a, MapWay *b)
     double alensq = F_INF, blensq = F_INF;
     for (vector<MapNode *>::iterator nit = a->nl[0].begin(); nit != a->nl[0].end(); nit++) {
         MapNode *node = *nit;
-        alensq = min(alensq, lensq(MapPoint(node->x, node->y) - nearby_center));
+        alensq = min(alensq, vlensq(MapPoint(node->x, node->y) - nearby_center));
     }
     for (vector<MapNode *>::iterator nit = b->nl[0].begin(); nit != b->nl[0].end(); nit++) {
         MapNode *node = *nit;
-        blensq = min(blensq, lensq(MapPoint(node->x, node->y) - nearby_center));
+        blensq = min(blensq, vlensq(MapPoint(node->x, node->y) - nearby_center));
     }
     return alensq < blensq;
 }
@@ -125,7 +125,7 @@ void MapOperation::query_tag_with_dist()
     MapPoint A(pvl.front().x, pvl.front().y);
     MapPoint B(pvl.back().x, pvl.back().y);
     nearby_center = A;
-    nearby_distsq = lensq(B - A);
+    nearby_distsq = vlensq(B - A);
     double nearby_dist = sqrt(nearby_distsq);
     base.left -= nearby_dist;
     base.right += nearby_dist;
@@ -184,12 +184,26 @@ void MapOperation::query_name()
     if (uinput.length() == 0) return;
     clear_results();
     const wchar_t *wstr = uinput.c_str();
+    
     query_description = L"  Query by name: " + uinput;
     query_report = "Type: Name\n";
     
+    string str = ws2s(uinput);
+    const char *ptr = str.c_str();
+    int num_flag = 0;
+    LL num = 0;
+    while (*ptr && isdigit(*ptr)) ptr++;
+    if (!*ptr && ptr != str.c_str()) {
+        num_flag = 1;
+        sscanf(str.c_str(), "%lld", &num);
+        printd("name is number %lld\n", num);
+    }
+    
     query_timer_start();
     md->nd.find(nresult, wstr);
+    if (num_flag && md->nm.find(num) != md->nm.end()) nresult.push_back(md->nm.find(num)->second);
     md->wd.find(wresult, wstr);
+    if (num_flag && md->wm.find(num) != md->wm.end()) wresult.push_back(md->wm.find(num)->second);
     query_timer_stop();
     query_report.append(printf2str("Node: %d\nWay: %d\nTime: %.2f ms\n",
             (int) nresult.size(), (int) wresult.size(), qtime));
@@ -392,7 +406,7 @@ MapNode *MapOperation::choose_nearest_sp_node() // choose nearest node which on 
     for (vector<MapLine *>::iterator lit = mg->dll.begin(); lit != mg->dll.end(); lit++) {
         MapLine *line = *lit;
         MapPoint A(line->p1), B(line->p2);
-        double adistsq = lensq(A - P), bdistsq = lensq(B - P);
+        double adistsq = vlensq(A - P), bdistsq = vlensq(B - P);
         if (line->p1->on_shortest_path && adistsq < distsq) { ret = line->p1; distsq = adistsq; }
         if (line->p2->on_shortest_path && bdistsq < distsq) { ret = line->p2; distsq = bdistsq; }
     }
@@ -435,15 +449,22 @@ void MapOperation::run_shortestpath()
     msp->set_start(sp_start);
     msp->set_end(sp_end);
     sp_result.clear();
-    sp_algo = MapShortestPath::ALGO_SPFA;
-    if (!msp->get_shortest_path(sp_result, sp_mindist, sp_time, sp_algo)) {
+    if (!msp->get_shortest_path(sp_result, sp_mindist, sp_time, sp_prepare_time, sp_algo)) {
         mg->msg.append("ERROR:\n  Shortest path failed.");
         return;
     }
     sp_mindist *= MapData::dist_factor;
-    sp_report = printf2str("Algorithm: %s\nDistance: %s\nTime: %.2f ms\n",
-                                msp->get_algo_name(sp_algo), md->get_length_string(sp_mindist).c_str(), sp_time);
+    sp_report = printf2str("Algorithm: %s\nDistance: %s\nInit: %.2f ms\nTime: %.2f ms\n",
+        msp->get_algo_name(sp_algo), md->get_length_string(sp_mindist).c_str(), sp_prepare_time, sp_time);
     //show_shortestpath_result();
+}
+
+void MapOperation::switch_shortest_algo()
+{
+    int diff = mg->kbd_shift ? -1 : 1;
+    printf("shift = %d, diff = %d\n", mg->kbd_shift, diff);
+    int cnt = MapShortestPath::ALGO_COUNT;
+    sp_algo = (sp_algo + diff + cnt) % cnt;
 }
 
 void MapOperation::clear_all()
@@ -455,6 +476,11 @@ void MapOperation::clear_all()
     clear_shortestpath_result();
 }
 
+void MapOperation::init()
+{
+    sp_algo = 0;
+    clear_all();
+}
 
 void MapOperation::operation(MapOperationCode op)
 {
@@ -477,7 +503,6 @@ void MapOperation::operation(MapOperationCode op)
             case ZOOM_OUT_BY_MOUSE: mg->zoom_display_range(-1, true); break;
             case ZOOM_IN_BY_MOUSE: mg->zoom_display_range(1, true); break;
             case RESET_VIEW: mg->reset_display_range(); break;
-            case TOGGLE_RTREE: mg->show_rtree ^= 1; break;
             case CENTER_NUM_POINT: mg->center_point(nnode[mg->kbd_num]); break;
             case CENTER_NUM_WAY: mg->center_way(nway[mg->kbd_num]); break;
             case CENTER_SEL_POINT: mg->center_point(snode); break;
@@ -500,6 +525,7 @@ void MapOperation::operation(MapOperationCode op)
             case RUN_SHORTESTPATH: run_shortestpath(); break;
             case SHOW_SHORTESTPATH_RESULT: show_shortestpath_result(); break;
             case CLEAR_SHORTESTPATH_VERTEX: clear_shortestpath_vertex(); break;
+            case SWITCH_SHORTESTPATH_ALGO: switch_shortest_algo(); break;
 
             default: assert(0); break;
         }

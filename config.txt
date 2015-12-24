@@ -1,5 +1,5 @@
 // map data
-MAPDATA=../data/beijing_map.xml
+MAPDATA=../data/shanghai_map.xml
 
 // title of main window
 TITLE=Zby's Map
@@ -19,8 +19,8 @@ LINE_DETAIL_ANGLE_LIMIT=10
 // SELECTED_POINT_RECT_SIZE: size of the rectangle of selected node
 
 USE_RTREE_FOR_DRAWING=0
-USE_DOUBLE_BUFFER=1
-MULTISAMPLE_LEVEL=8
+USE_DOUBLE_BUFFER=0
+MULTISAMPLE_LEVEL=0
 MOUSE_BUTTON_ZOOMIN=3
 MOUSE_BUTTON_ZOOMOUT=4
 INITIAL_WINDOW_HEIGHT=500
