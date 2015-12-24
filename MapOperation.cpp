@@ -12,7 +12,6 @@ void MapOperation::query_timer_start() { qclock = myclock(); }
 void MapOperation::query_timer_stop()
 {
     qtime = myclock() - qclock;
-    mg->msg += printf2str("Query Time = %.2f ms\n", qtime);
 }
 
 void MapOperation::query_tag_with_filter(const string &tag, const MapRect &baserect,
@@ -31,6 +30,8 @@ void MapOperation::query_tag_with_filter(const string &tag, const MapRect &baser
         for (vector<MapWay *>::iterator wit = wr.begin(); wit != wr.end(); wit++)
             if ((this->*way_filter)(*wit)) wresult.push_back(*wit);
         query_timer_stop();
+        query_report.append(printf2str("Tag: %s\nNode: %d\nWay: %d\nTime: %.2f ms\n",
+            tag.c_str(), (int) nresult.size(), (int) wresult.size(), qtime));
     } else {
         mg->msg.append(printf2str("ERROR:\n  Invalid tag \"%s\".\n", tag.c_str()));
         return;
@@ -59,6 +60,7 @@ void MapOperation::query_tag_with_poly()
     clear_results();
     const wchar_t *wstr = uinput.c_str();
     query_description = L"  Query in polygon by tag: " + uinput;
+    query_report = "Type: Polygon\n";
     string tag = ws2s(wstr);
     
     assert(pvl.size() >= 3);
@@ -115,6 +117,7 @@ void MapOperation::query_tag_with_dist()
     clear_results();
     const wchar_t *wstr = uinput.c_str();
     query_description = L"  Query nearby objects by tag: " + uinput;
+    query_report = "Type: Nearby\n";
     string tag = ws2s(wstr);
     
     assert(pvl.size() == 2);
@@ -152,6 +155,7 @@ void MapOperation::query_tag_in_display()
     clear_results();
     const wchar_t *wstr = uinput.c_str();
     query_description = L"  Query objects in sight by tag: " + uinput;
+    query_report = "Type: Insight\n";
     string tag = ws2s(wstr);
     
     double dminx, dminy, dmaxx, dmaxy;
@@ -181,11 +185,14 @@ void MapOperation::query_name()
     clear_results();
     const wchar_t *wstr = uinput.c_str();
     query_description = L"  Query by name: " + uinput;
+    query_report = "Type: Name\n";
     
     query_timer_start();
     md->nd.find(nresult, wstr);
     md->wd.find(wresult, wstr);
     query_timer_stop();
+    query_report.append(printf2str("Node: %d\nWay: %d\nTime: %.2f ms\n",
+            (int) nresult.size(), (int) wresult.size(), qtime));
     
     select_results();
     //show_results();
@@ -248,6 +255,7 @@ void MapOperation::clear_results()
     nresult.clear();
     wresult.clear();
     query_description = L"  No Query";
+    query_report.clear();
     qtime = 0;
 }
 
@@ -433,7 +441,7 @@ void MapOperation::run_shortestpath()
         return;
     }
     sp_mindist *= MapData::dist_factor;
-    sp_report = printf2str("Algorithm: %s\nDistance: %s\nTime: %.2f ms",
+    sp_report = printf2str("Algorithm: %s\nDistance: %s\nTime: %.2f ms\n",
                                 msp->get_algo_name(sp_algo), md->get_length_string(sp_mindist).c_str(), sp_time);
     //show_shortestpath_result();
 }
@@ -453,9 +461,8 @@ void MapOperation::operation(MapOperationCode op)
     assert(md);
     assert(mg);
     assert(mgui);
-    if (op == NOP) return;
     mg->msg.clear();
-//    mg->msg.append("Hello World!\n");
+    if (op == NOP) return;
     if (op == POP_DISPLAY) {
         mg->pop_display_range();
     } else {

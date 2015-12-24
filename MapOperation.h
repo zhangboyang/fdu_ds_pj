@@ -113,7 +113,8 @@ class MapOperation {
     std::vector<MapLine *> sp_result;
     double sp_mindist, sp_time;
     int sp_algo;
-    std::string sp_report;
+    std::string sp_report; // report is displayed by bitmap string
+    std::string query_report;
     
     std::vector<MapPoint> pvl; // poly vertex list
     

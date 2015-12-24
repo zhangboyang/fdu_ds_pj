@@ -98,6 +98,8 @@ int main(int argc, char *argv[])
     mg.multisample_level = str2LL(cfgp.query("MULTISAMPLE_LEVEL"));
     mg.mouse_btn_zoomin = str2LL(cfgp.query("MOUSE_BUTTON_ZOOMIN"));
     mg.mouse_btn_zoomout = str2LL(cfgp.query("MOUSE_BUTTON_ZOOMOUT"));
+    mg.zoom_low_limit = str2double(cfgp.query("ZOOM_LOW_LIMIT"));
+    mg.zoom_high_limit = str2double(cfgp.query("ZOOM_HIGH_LIMIT"));
     
     // load graphics color and thickness
     if (sscanf(cfgp.query("SELECTED_COLOR"), "%f | %f | %f", // selected colors

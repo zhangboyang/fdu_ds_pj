@@ -106,6 +106,7 @@ class MapGraphics {
     int multisample_level;
     int mouse_btn_zoomin;
     int mouse_btn_zoomout;
+    double zoom_low_limit, zoom_high_limit;
 
     void target(MapData *md);
     void target_gui(MapGUI *mgui);

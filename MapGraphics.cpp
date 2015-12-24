@@ -141,10 +141,17 @@ void MapGraphics::zoom_display_range(int f, bool by_mouse)
     } 
     
     double diffx = (dmaxx - dminx) * (1 - pow(zoom_step, f));
+    double diffy = (dmaxy - dminy) * (1 - pow(zoom_step, f));
+    double yres = fabs(diffy) / window_height;
+    
+    printd("diffx = %e, diffy = %e, yres = %e\n", diffx, diffy, yres);
+    if (yres < zoom_low_limit || yres > zoom_high_limit) {
+        msg.append("ERROR:\n  Zoom level out of range.");
+        return;
+    }
+    
     dmaxx -= diffx * (1 - fx);
     dminx += diffx * fx;
-    
-    double diffy = (dmaxy - dminy) * (1 - pow(zoom_step, f));
     dmaxy -= diffy * (1 - fy);
     dminy += diffy * fy;
     
@@ -268,9 +275,9 @@ void MapGraphics::print_string(const char *str)
 {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(0, dmaxx - dminx, 0, dmaxy - dminy);
+    gluOrtho2D(0, 1, 0, 1);
     glColor3d(1.0, 1.0, 0.0);
-    const double char_height = 13, char_width = 8, padding = 2;
+    const double char_height = 14, char_width = 8, padding = 2;
     int cnt = 0;
     int maxrow = 1, maxcol = 0;
     const char *ptr;
@@ -284,8 +291,8 @@ void MapGraphics::print_string(const char *str)
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glColor3f(0.0f, 0.0f, 0.0f);
     glBegin(GL_QUADS);
-    double x1 = 0, x2 = (dmaxx - dminx) * (maxcol * char_width + padding) / window_width;
-    double y1 = dmaxy - dminy, y2 = (dmaxy - dminy) * (1 - (maxrow * char_height + padding) / window_height);
+    double x1 = 0, x2 = (maxcol * char_width + padding) / window_width;
+    double y1 = 1, y2 = 1 - (maxrow * char_height + padding) / window_height;
     glVertex2d(x1, y1);
     glVertex2d(x1, y2);
     glVertex2d(x2, y2);
@@ -293,13 +300,8 @@ void MapGraphics::print_string(const char *str)
     glEnd();
     
     glColor3d(1.0, 1.0, 1.0);
-    glRasterPos2d(0, (dmaxy - dminy) * (1 - char_height / window_height));
-    cnt = 1;
-    for (ptr = str; *ptr; ptr++)
-        if (*ptr == '\n')
-            glRasterPos2d(0, (dmaxy - dminy) * (1 - ++cnt * char_height / window_height));
-        else if (isprint(*ptr))
-            glutBitmapCharacter(GLUT_BITMAP_8_BY_13, *ptr);
+    glRasterPos2d(0, 1 - char_height / window_height);    
+    glutBitmapString(GLUT_BITMAP_8_BY_13, (const unsigned char *) str);
 }
 
 void MapGraphics::reload_vertex()
@@ -599,13 +601,17 @@ void MapGraphics::redraw()
     }
     string shortestpath_str;
     if (!mo->sp_report.empty()) {
-        shortestpath_str = "== Shortest Path ==\n" + mo->sp_report + '\n';
+        shortestpath_str = "== Shortest Path ==\n" + mo->sp_report;
+    }
+    string query_str;
+    if (!mo->query_report.empty()) {
+        query_str = "== Query ==\n" + mo->query_report;
     }
     
     string str_to_print = 
         "== Last Frame ==\n" + last_redraw_str +
         "== This Frame ==\n" + redraw_str +
-        snode_str + sway_str + shortestpath_str;
+        snode_str + sway_str + query_str + shortestpath_str;
     if (!msg.empty()) str_to_print.append("== Message ==\n" + msg);
     print_string(str_to_print.c_str());
     
@@ -739,7 +745,7 @@ void MapGraphics::mouse_event(bool use_last_op, int button, int state, int x, in
             last_mx = mx; last_my = my;
             is_dragging_map = true;
         }
-        return;
+        op = MapOperation::NOP;
     } else if (button == mouse_btn_zoomin && state == GLUT_DOWN) {
         op = MapOperation::ZOOM_IN_BY_MOUSE;
     } else if (button == mouse_btn_zoomout && state == GLUT_DOWN) {
@@ -880,7 +886,7 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     
-    msg = "Welcome to ZBY's Map\n";
+    msg = "Hello World!\nWelcome to ZBY's Map\n";
 
     const char *glstr;
     glstr = (const char *) glGetString(GL_VENDOR); if (glstr) { msg += "Vendor: "; msg += glstr; msg += '\n';}
