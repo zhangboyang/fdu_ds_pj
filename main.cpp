@@ -9,8 +9,10 @@
 #include "str2type.h"
 #include "wstr.h"
 
+#ifdef ZBY_OS_LINUX
 //#define ENABLE_HEAP_PROFILE
 #define ENABLE_CPU_PROFILE
+#endif
 
 #ifdef ENABLE_CPU_PROFILE
 #include <google/profiler.h>
@@ -80,7 +82,6 @@ int main(int argc, char *argv[])
     
     #ifdef ENABLE_HEAP_PROFILE
     HeapProfilerDump("xml file loaded");
-    HeapProfilerStop();
     #endif
     
     md.construct();
@@ -158,7 +159,6 @@ int main(int argc, char *argv[])
     ProfilerStart("pj_cpu");
     #endif
     
-    //fclose(stdout);
     mg.show(window_title, argc, argv); // ui loop, never return
     
     assert(0);

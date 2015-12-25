@@ -57,8 +57,8 @@ void MapData::set_coord_limit(double minlat, double maxlat, double minlon, doubl
     /* since we set maxmin, gratio first, we can call trans_coord() now */
     trans_coord(minlat, minlon, &minx, &miny);
     trans_coord(maxlat, maxlon, &maxx, &maxy);
-    assert(maxx > minx); //if (minx > maxx) swap(minx, maxx);
-    assert(maxy > miny); //if (miny > maxy) swap(miny, maxy);
+    assert(maxx > minx);
+    assert(maxy > miny);
     map_ratio = (maxx - minx) / (maxy - miny);
 }
 

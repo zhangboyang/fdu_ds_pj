@@ -462,7 +462,7 @@ void MapOperation::run_shortestpath()
 void MapOperation::switch_shortest_algo()
 {
     int diff = mg->kbd_shift ? -1 : 1;
-    printf("shift = %d, diff = %d\n", mg->kbd_shift, diff);
+    printd("shift = %d, diff = %d\n", mg->kbd_shift, diff);
     int cnt = MapShortestPath::ALGO_COUNT;
     sp_algo = (sp_algo + diff + cnt) % cnt;
 }

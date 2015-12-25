@@ -59,18 +59,6 @@ void MapGraphics::trans_gcoord(double x, double y, double *gx, double *gy)
     *gx = x - md->minx;
     *gy = y - md->miny;
 }
-/*
-void MapGraphics::rtrans_gcoord(double gx, double gy, double *x, double *y)
-{
-    *x = gx + md->minx;
-    *y = gy + md->miny;
-#ifdef DEBUG
-    double gx2, gy2;
-    trans_gcoord(*x, *y, &gx2, &gy2);
-    assert(fequ(gx2, gx) && fequ(gy2, gy));
-#endif
-}*/
-
 
 void MapGraphics::set_display_range(double dminx, double dmaxx, double dminy, double dmaxy)
 {
@@ -404,7 +392,6 @@ void MapGraphics::redraw()
     st_clock = myclock();
     vertex_count = 0;
     
-    //fflush(stdout);
     glClear(GL_COLOR_BUFFER_BIT);
     
     glMatrixMode(GL_PROJECTION);
@@ -428,10 +415,6 @@ void MapGraphics::redraw()
     }
     
     glShadeModel(GL_FLAT);
-    
-//    printf("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
-//    printf("disp-res: %f\n", get_display_resolution());
-//    printf("zoom-level: %d\n", zoom_level);
     
     bool lvl_changed = false;
     update_current_display_level();
@@ -475,6 +458,7 @@ void MapGraphics::redraw()
         glEnd();
     }
     
+    
     bool sway_flag = false;
     // draw numbered ways
     for (int num = 0; num < MapOperation::MAX_KBDNUM; num++) {
@@ -494,14 +478,11 @@ void MapGraphics::redraw()
     }
     // draw normal ways
     // speed is very important, use glDrawElements() instead of glBegin()...glEnd()
-    //std::vector<vnode> &vl = vct_vl[clvl];
-    //std::vector<unsigned> &il = vct_il[clvl];
     std::vector<std::pair<float, std::pair<int, int> > > &tl = vct_tl[clvl];
     for (vector<pair<float, pair<int, int> > >::iterator tlit = tl.begin(); tlit != tl.end(); tlit++) {
         glLineWidth(tlit->first);
         glDrawElements(GL_LINES, tlit->second.second, GL_UNSIGNED_INT, (const void *) (tlit->second.first * sizeof(unsigned)));
     }
-
     // draw result ways
     for (vector<MapWay *>::iterator wit = mo->wresult.begin(); wit != mo->wresult.end(); wit++) {
         MapWay *way = *wit;
@@ -527,6 +508,20 @@ void MapGraphics::redraw()
             MapNode *from = line->p1, *to = line->p2;
             draw_vertex(from->x, from->y);
             draw_vertex(to->x, to->y);
+        }
+        glEnd();
+    }
+    // draw shortest-path-tree
+    if (show_shortestpath_node && !mo->sp_result.empty()) {
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glLineWidth(1.0f);
+        glBegin(GL_LINES);
+        for (vector<MapNode *>::iterator nit = md->nl.begin(); nit != md->nl.end(); nit++) {
+            MapLine *line = (*nit)->from;
+            if (line) {
+                draw_vertex(line->p1->x, line->p1->y);
+                draw_vertex(line->p2->x, line->p2->y);
+            }
         }
         glEnd();
     }
@@ -568,20 +563,6 @@ void MapGraphics::redraw()
     if (mo->sp_start) highlight_point(mo->sp_start, sp_vertex_rect_size, sp_src_color, sp_vertex_rect_thick);
     if (mo->sp_end) highlight_point(mo->sp_end, sp_vertex_rect_size, sp_dest_color, sp_vertex_rect_thick);
     
-    // draw shortest-path-tree
-    if (show_shortestpath_node) {
-        glColor3f(0.0f, 1.0f, 0.0f);
-        glLineWidth(1.0f);
-        glBegin(GL_LINES);
-        for (vector<MapNode *>::iterator nit = md->nl.begin(); nit != md->nl.end(); nit++) {
-            MapLine *line = (*nit)->from;
-            if (line) {
-                draw_vertex(line->p1->x, line->p1->y);
-                draw_vertex(line->p2->x, line->p2->y);
-            }
-        }
-        glEnd();
-    }
     
     // draw messages
     string redraw_str = printf2str(

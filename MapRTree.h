@@ -31,7 +31,13 @@ class MapRTree {
         double enlargement(node *data) // compute enlargement if we add 'data' to this node
         {
             MapRect nrect = MapRect(rect, data->rect);
-            assert(nrect.area() >= rect.area());
+            #ifdef DEBUG
+            if (nrect.area() < rect.area()) {
+                printf("nrect.area() = %.100f\n", nrect.area());
+                printf("rect.area()  = %.100f\n", rect.area());
+            }
+            #endif
+            assert(fcmp(nrect.area() - rect.area()) >= 0);
             return nrect.area() - rect.area();
         }
     };

@@ -19,10 +19,12 @@ typedef unsigned long long ULL;
 #include "timing.h"
 
 /* float and double function */
-#define F_EPS 1e-6
+#include <cmath>
+#define F_EPS 1e-10
 #define F_INF 1e100
 #define fequ(a, b) (fabs((a) - (b)) < F_EPS)
 template <class T> inline static T sq(T a) { return a * a; }
+inline static int fcmp(double x) { return fabs(x) < F_EPS ? 0 : (x > 0 ? 1 : -1); }
 
 /* common buffer size */
 #define MAXLINE 4096
