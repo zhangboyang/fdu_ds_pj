@@ -8,9 +8,9 @@
 class MapShortestPath {
     public:
     enum algo_type {
-        ALGO_SPFA,
-        ALGO_DIJKSTRA,
         ALGO_ASTAR,
+        ALGO_DIJKSTRA,
+        ALGO_SPFA,
         ALGO_BFS,
         ALGO_COUNT, // must be last one
     };
