@@ -6,6 +6,7 @@
 #include "MapGraphics.h"
 #include "MapOperation.h"
 #include "MapGUI.h"
+#include "MapTaxiRoute.h"
 #include "str2type.h"
 #include "wstr.h"
 
@@ -28,6 +29,7 @@ static MapGraphics mg;
 static MapGUI mgui;
 static MapOperation mo;
 static MapShortestPath msp;
+static MapTaxiRoute mtr;
 
 int main(int argc, char *argv[])
 {
@@ -96,6 +98,7 @@ int main(int argc, char *argv[])
     mg.zoom_bysize_factor = str2double(cfgp.query("ZOOM_BYSIZE_FACTOR"));
     mg.use_rtree_for_drawing = str2LL(cfgp.query("USE_RTREE_FOR_DRAWING"));
     mg.use_double_buffer = str2LL(cfgp.query("USE_DOUBLE_BUFFER"));
+    mg.use_line_smooth = str2LL(cfgp.query("USE_LINE_SMOOTH"));
     mg.multisample_level = str2LL(cfgp.query("MULTISAMPLE_LEVEL"));
     mg.mouse_btn_zoomin = str2LL(cfgp.query("MOUSE_BUTTON_ZOOMIN"));
     mg.mouse_btn_zoomout = str2LL(cfgp.query("MOUSE_BUTTON_ZOOMOUT"));
@@ -141,15 +144,22 @@ int main(int argc, char *argv[])
                  &mg.sp_path_color[0], &mg.sp_path_color[1], &mg.sp_path_color[2]) != 3)
         fail("can't parse sp_path_color");
     mg.sp_path_thick = str2double(cfgp.query("SHORTESTPATH_PATH_THICK"));
-
+    if (sscanf(cfgp.query("TAXI_ROUTE_COLOR"), "%f | %f | %f", // taxi route colors
+                 &mg.trcolor[0], &mg.trcolor[1], &mg.trcolor[2]) != 3)
+        fail("can't parse trcolor");
+    mg.trthickness = str2double(cfgp.query("TAXI_ROUTE_THICK"));
     
     mg.target(&md);
     mg.target_gui(&mgui);
     mg.target_shortestpath(&msp);
+    mg.target_taxiroute(&mtr);
     mg.target_operation(&mo);
     
-    const char *window_title = cfgp.query("TITLE");
-    cfgp.check_not_queried_keys();
+    
+    mtr.set_filename(cfgp.query("TAXIDATA"));
+    timing_start("preprocess taxi data");
+    mtr.preprocess();
+    timing_end();
     
     #ifdef ENABLE_HEAP_PROFILE
     HeapProfilerDump("construct finished");
@@ -158,6 +168,9 @@ int main(int argc, char *argv[])
     #ifdef ENABLE_CPU_PROFILE
     ProfilerStart("pj_cpu");
     #endif
+    
+    const char *window_title = cfgp.query("TITLE");
+    cfgp.check_not_queried_keys();
     
     mg.show(window_title, argc, argv); // ui loop, never return
     

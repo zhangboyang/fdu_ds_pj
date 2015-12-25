@@ -20,16 +20,19 @@ using namespace std;
 void MapGraphics::target(MapData *md) { MapGraphics::md = md; }
 void MapGraphics::target_gui(MapGUI *mgui) { MapGraphics::mgui = mgui; }
 void MapGraphics::target_shortestpath(MapShortestPath *msp) { MapGraphics::msp = msp; }
+void MapGraphics::target_taxiroute(MapTaxiRoute *mtr) { MapGraphics::mtr = mtr; }
 void MapGraphics::target_operation(MapOperation *mo) // must be called after other target()
 {
     assert(md);
     assert(mgui);
     assert(msp);
+    assert(mtr);
     MapGraphics::mo = mo;
     mo->mg = this;
     mo->md = md;
     mo->mgui = mgui;
     mo->msp = msp;
+    mo->mtr = mtr;
     msp->md = md;
 }
 
@@ -87,22 +90,40 @@ void MapGraphics::push_display_range()
             (!fequ(display_stack.back().first.first, centerx) ||
              !fequ(display_stack.back().first.second, centery) ||
              display_stack.back().second != zoom_level)) {
+        #ifdef DEBUG
+        if (!display_stack.empty()) {
+            printd("centerx: %.10f %.10f\n", display_stack.back().first.first, centerx);
+            printd("centery: %.10f %.10f\n", display_stack.back().first.second, centery);
+            printd("zlvl: %d %d\n", display_stack.back().second, zoom_level);
+        } else {
+            printd("centerx: %.10f\n", centerx);
+            printd("centery: %.10f\n", centery);
+            printd("zlvl: %d\n", zoom_level);
+        }
+        #endif
         display_stack.push_back(make_pair(make_pair(centerx, centery), zoom_level));
     }
 }
 
 void MapGraphics::pop_display_range()
 {
-    if (!display_stack.empty()) {
-        double centerx, centery;
-        int f;
+    double cur_centerx = dminx + (dmaxx - dminx) / 2;
+    double cur_centery = dminy + (dmaxy - dminy) / 2;
+    int cur_f = zoom_level;
+    
+    double centerx, centery;
+    int f;
+    do {
+        if (display_stack.empty()) return;
         centerx = display_stack.back().first.first;
         centery = display_stack.back().first.second;
         f = display_stack.back().second;
         display_stack.pop_back();
-        move_display_to_point(centerx, centery);
-        zoom_display_range(f - zoom_level);
-    }
+    } while (fequ(cur_centerx, centerx) && fequ(cur_centery, centery) && cur_f == f);
+    
+    printd("pop: %f %f %d\n", centerx, centery, f);
+    move_display_to_point(centerx, centery);
+    zoom_display_range(f - zoom_level);
 }
 
 void MapGraphics::move_display_range(int x, int y)
@@ -133,7 +154,7 @@ void MapGraphics::zoom_display_range(int f, bool by_mouse)
     double yres = fabs(diffy) / window_height;
     
     printd("diffx = %e, diffy = %e, yres = %e\n", diffx, diffy, yres);
-    if (yres < zoom_low_limit || yres > zoom_high_limit) {
+    if ((f > 0 && yres < zoom_low_limit) || (f < 0 && yres > zoom_high_limit)) {
         msg.append("ERROR:\n  Zoom level out of range.");
         return;
     }
@@ -171,15 +192,15 @@ void MapGraphics::zoom_display_range(int f, bool by_mouse)
     zoom_display_range(f);
 }*/
 
-void MapGraphics::move_display_to_point(double gx, double gy)
+void MapGraphics::move_display_to_point(double x, double y)
 {
     double diffx = (dmaxx - dminx);
-    dmaxx = gx + diffx / 2;
-    dminx = gx - diffx / 2;
+    dmaxx = x + diffx / 2;
+    dminx = x - diffx / 2;
     
     double diffy = (dmaxy - dminy);
-    dmaxy = gy + diffy / 2;
-    dminy = gy - diffy / 2;
+    dmaxy = y + diffy / 2;
+    dminy = y - diffy / 2;
 }
 
 void MapGraphics::reset_display_range()
@@ -400,7 +421,8 @@ void MapGraphics::redraw()
         double gminx, gmaxx, gminy, gmaxy;
         trans_gcoord(dminx, dminy, &gminx, &gminy);
         trans_gcoord(dmaxx, dmaxy, &gmaxx, &gmaxy);
-        printd("range: %f %f %f %f\n", gminx, gmaxx, gminy, gmaxy);
+        printd("range: %f %f %f %f\n", dminx, dmaxx, dminy, dmaxy);
+        printd("grange: %f %f %f %f\n", gminx, gmaxx, gminy, gmaxy);
         gluOrtho2D(gminx, gmaxx, gminy, gmaxy);
     } else {
         double diff_mx = last_mx - mx;
@@ -525,7 +547,27 @@ void MapGraphics::redraw()
         }
         glEnd();
     }
-    
+    // draw taxi route
+    if (!mo->tr.empty()) {
+        glColor3f(trcolor[0], trcolor[1], trcolor[2]);
+        glLineWidth(trthickness);
+        printd("thick=%f\n", trthickness);
+        glBegin(GL_LINE_STRIP);
+        for (vector<MapPoint>::iterator it = mo->tr.begin(); it != mo->tr.end(); it++) {
+            draw_vertex(it->x, it->y);
+        }
+        glEnd();
+    }
+    // draw poly vertex
+    if (mo->pvl.size() > 1) {
+        glColor3f(pcolor[0], pcolor[1], pcolor[2]);
+        glLineWidth(pthickness);
+        glBegin(GL_LINE_LOOP);
+        for (vector<MapPoint>::iterator it = mo->pvl.begin(); it != mo->pvl.end(); it++) {
+            draw_vertex(it->x, it->y);
+        }
+        glEnd();
+    }
     
     bool snode_flag = false;
     // draw numbered nodes
@@ -548,16 +590,6 @@ void MapGraphics::redraw()
                 break;
             }
         if (!nflag) highlight_point(node, nrsize, nrcolor, nrthick);
-    }
-    // draw poly vertex
-    if (mo->pvl.size() > 1) {
-        glColor3f(pcolor[0], pcolor[1], pcolor[2]);
-        glLineWidth(pthickness);
-        glBegin(GL_LINE_LOOP);
-        for (vector<MapPoint>::iterator it = mo->pvl.begin(); it != mo->pvl.end(); it++) {
-            draw_vertex(it->x, it->y);
-        }
-        glEnd();
     }
     // draw shortest path src and dest
     if (mo->sp_start) highlight_point(mo->sp_start, sp_vertex_rect_size, sp_src_color, sp_vertex_rect_thick);
@@ -715,10 +747,14 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case '\x1b': op = MapOperation::CLEAR_ALL; break;
         case 'a': op = MapOperation::SET_SHORTESTPATH_START; break;
         case 's': op = MapOperation::SET_SHORTESTPATH_END; break;
-        case 'd': op = MapOperation::CLEAR_SHORTESTPATH_VERTEX; break;
+        case 'd': op = MapOperation::CLEAR_SHORTESTPATH; break;
         case '\t': select_flag ^= 1; op = MapOperation::NOP; break;
         case '`': case '~':  op = MapOperation::SWITCH_SHORTESTPATH_ALGO; break;
         case '\\': case '|': show_message ^= 1; op = MapOperation::NOP; break;
+        case '/': case '?': op = MapOperation::SELECT_TAXI_ROUTE; break;
+        case '\'': case '"': op = MapOperation::SHOW_TAXI_LIST; break;
+        case '<': case ',': op = MapOperation::SHOW_TAXI_ROUTE_BEGIN; break;
+        case '>': case '.': op = MapOperation::SHOW_TAXI_ROUTE_END; break;
         default: printd("unknown key %c\n", key); return;
     }
     map_operation(op);
@@ -814,6 +850,9 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     assert(md);
     assert(mgui);
     assert(mgptr == NULL); // can't create MapGraphics twice
+    assert(msp);
+    assert(mtr);
+    
     mgptr = this;
     
     show_rtree = 0;
@@ -838,7 +877,7 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     
     /* glut things */
     glutInit(&argc, argv);
-    unsigned int mode = GLUT_RGB;
+    unsigned int mode = GLUT_RGBA;
     mode |= use_double_buffer ? GLUT_DOUBLE : GLUT_SINGLE;
     if (multisample_level) {
         glutSetOption(GLUT_MULTISAMPLE, multisample_level);
@@ -887,6 +926,8 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
         timing_end();
     }
     
+    last_clvl = -1; // set last_clvl to -1 to force a vertex reload when drawing
+    
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
     
     msg = "Hello World!\nWelcome to ZBY's Map\n";
@@ -899,11 +940,21 @@ void MapGraphics::show(const char *title, int argc, char *argv[])
     
     if (multisample_level) {
         glEnable(GL_MULTISAMPLE);
-        int real_multisample_level;
+        int real_multisample_level, multisample_buffers;
         glGetIntegerv(GL_SAMPLES, &real_multisample_level);
-        if (real_multisample_level != multisample_level) {
+        glGetIntegerv(GL_SAMPLE_BUFFERS, &multisample_buffers);
+        if (multisample_buffers <= 0 || real_multisample_level != multisample_level) {
             printf("warning: %dx MSAA is not supported.\n", multisample_level);
         }
+    }
+    
+    if (use_line_smooth) {
+        glEnable(GL_LINE_SMOOTH);
+        glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
+        glEnable(GL_POINT_SMOOTH);
+        glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     }
     
     glutMainLoop(); // never return

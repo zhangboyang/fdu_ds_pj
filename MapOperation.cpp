@@ -422,10 +422,10 @@ void MapOperation::show_shortestpath_result()
 {
     if (!sp_result.empty()) {
         mgui->prepare_msgbox();
-        mgui->set_msgbox_title(s2ws("Shortest Path"));
+        mgui->set_msgbox_title(L"Shortest Path");
         mgui->set_msgbox_description(s2ws(printf2str("Here is the shortest path from node #%lld to node #%lld", sp_start->id, sp_end->id)));
-        mgui->set_msgbox_append(s2ws("[length] " + md->get_length_string(sp_mindist)));
-        mgui->set_msgbox_append(s2ws(string("[algorithm] ") + msp->get_algo_name(sp_algo)));
+        mgui->set_msgbox_append(L"[length] " + s2ws(md->get_length_string(sp_mindist)));
+        mgui->set_msgbox_append(L"[algorithm] " + s2ws(msp->get_algo_name(sp_algo)));
         mgui->set_msgbox_append(s2ws(printf2str("[time] %.2f ms", sp_time)));
         mgui->set_msgbox_append(L"");
         mgui->set_msgbox_append(L"[source] " + get_node_string(sp_start));
@@ -467,6 +467,63 @@ void MapOperation::switch_shortest_algo()
     sp_algo = (sp_algo + diff + cnt) % cnt;
 }
 
+void MapOperation::clear_taxi_route() { tr.clear(); }
+void MapOperation::show_taxi_route_begin() { if (!tr.empty()) mg->move_display_to_point(tr.front().x, tr.front().y); }
+void MapOperation::show_taxi_route_end() { if (!tr.empty()) mg->move_display_to_point(tr.back().x, tr.back().y); }
+void MapOperation::reload_taxi_route()
+{
+    tr.clear();
+    for (vector<MapTaxiRoute::taxi_node>::iterator tnit = mtr->tnl.begin(); tnit != mtr->tnl.end(); tnit++) {
+        double lat = tnit->lat;
+        double lon = tnit->lon;
+        double x, y;
+        md->trans_coord(lat, lon, &x, &y);
+        tr.push_back(MapPoint(x, y));
+        //printd("%f %f\n", x, y);
+    }
+}
+void MapOperation::select_taxi_route()
+{
+    mgui->prepare_inputbox();
+    mgui->set_inputbox_title(L"Select taxi route");
+    mgui->set_inputbox_description(L"Taxi ID");
+    wstring uinput = mgui->show_inputbox();
+    if (uinput.length() == 0) return;
+    string str = ws2s(uinput);
+    int taxi_id;
+    
+    if (sscanf(str.c_str(), "%d", &taxi_id) != 1) {
+        mg->msg.append(printf2str("ERROR:\n  Invalid id '%s'", str.c_str()));
+        return;
+    }
+
+    int taxi_index;
+    taxi_index = mtr->find_index_by_id(taxi_id);
+    if (taxi_index < 0) {
+        mg->msg.append(printf2str("ERROR:\n  Can't find taxi %d\n", taxi_id));
+        return;
+    }
+    
+    mtr->load_route(taxi_index);
+    reload_taxi_route();
+}
+
+void MapOperation::show_taxi_list()
+{
+    mgui->prepare_msgbox();
+    mgui->set_msgbox_title(L"Taxi List");
+    mgui->set_msgbox_description(L"Here is the taxi list");
+    mgui->set_msgbox_append(s2ws(printf2str(" %-15s%-15s%-15s", "ID", "Node Count", "File Offset")));
+    mgui->set_msgbox_append(L"==============================================");
+    for (vector<pair<int, pair<int, long> > >::iterator tit = mtr->tl.begin(); tit != mtr->tl.end(); tit++) {
+        int taxi_id = tit->first;
+        int line_count = tit->second.first;
+        long file_offset = tit->second.second;
+        mgui->set_msgbox_append(s2ws(printf2str(" %-15d%-15d%-15ld", taxi_id, line_count, file_offset)));
+    }
+    mgui->show_msgbox();
+}
+
 void MapOperation::clear_all()
 {
     clear_results();
@@ -474,6 +531,7 @@ void MapOperation::clear_all()
     clear_polyvertex();
     clear_shortestpath_vertex();
     clear_shortestpath_result();
+    clear_taxi_route();
 }
 
 void MapOperation::init()
@@ -488,12 +546,13 @@ void MapOperation::operation(MapOperationCode op)
     assert(mg);
     assert(mgui);
     mg->msg.clear();
-    if (op == NOP) return;
     if (op == POP_DISPLAY) {
         mg->pop_display_range();
     } else {
         mg->push_display_range();
         switch (op) {
+            case NOP: break;
+            
             case MOVE_UP: mg->move_display_range(0, 1); break;
             case MOVE_DOWN: mg->move_display_range(0, -1); break;
             case MOVE_LEFT: mg->move_display_range(-1, 0); break;
@@ -524,8 +583,12 @@ void MapOperation::operation(MapOperationCode op)
             case SET_SHORTESTPATH_END: set_shortestpath_end(); break;
             case RUN_SHORTESTPATH: run_shortestpath(); break;
             case SHOW_SHORTESTPATH_RESULT: show_shortestpath_result(); break;
-            case CLEAR_SHORTESTPATH_VERTEX: clear_shortestpath_vertex(); break;
+            case CLEAR_SHORTESTPATH: clear_shortestpath_vertex(); clear_shortestpath_result(); break;
             case SWITCH_SHORTESTPATH_ALGO: switch_shortest_algo(); break;
+            case SELECT_TAXI_ROUTE: select_taxi_route(); break;
+            case SHOW_TAXI_LIST: show_taxi_list(); break;
+            case SHOW_TAXI_ROUTE_BEGIN: show_taxi_route_begin(); break;
+            case SHOW_TAXI_ROUTE_END: show_taxi_route_end(); break;
 
             default: assert(0); break;
         }

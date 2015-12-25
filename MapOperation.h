@@ -8,6 +8,7 @@
 #include "MapGUI.h"
 #include "MapVector.h"
 #include "MapShortestPath.h"
+#include "MapTaxiRoute.h"
 
 class MapGraphics;
 
@@ -15,6 +16,7 @@ class MapOperation {
     private:
     double qtime; // query time
     double qclock; // start clock
+    std::wstring query_description;
     double nearby_distsq;
     static MapPoint nearby_center;
     static bool sort_node_by_dist(MapNode *a, MapNode *b);
@@ -44,6 +46,13 @@ class MapOperation {
     void clear_shortestpath_vertex();
     void clear_shortestpath_result();
     void switch_shortest_algo();
+    
+    void select_taxi_route();
+    void show_taxi_list();
+    void clear_taxi_route();
+    void reload_taxi_route();
+    void show_taxi_route_begin();
+    void show_taxi_route_end();
     
     void query_name();
     void select_way();
@@ -96,14 +105,19 @@ class MapOperation {
         SET_SHORTESTPATH_END,
         RUN_SHORTESTPATH,
         SHOW_SHORTESTPATH_RESULT,
-        CLEAR_SHORTESTPATH_VERTEX,
+        CLEAR_SHORTESTPATH,
         SWITCH_SHORTESTPATH_ALGO,
+        SELECT_TAXI_ROUTE,
+        SHOW_TAXI_LIST,
+        SHOW_TAXI_ROUTE_BEGIN,
+        SHOW_TAXI_ROUTE_END,
     };
 
     MapData *md;
     MapGraphics *mg;
     MapGUI *mgui;
     MapShortestPath *msp;
+    MapTaxiRoute *mtr;
     
     MapNode *snode; // selected node
     MapNode *nnode[MAX_KBDNUM]; // numbered node
@@ -120,9 +134,12 @@ class MapOperation {
     std::vector<MapPoint> pvl; // poly vertex list
     
     // query
-    std::vector<MapNode *> nresult;
+    std::vector<MapNode *> nresult; // node result
     std::vector<MapWay *> wresult;
-    std::wstring query_description;
+    
+    // taxi
+    std::vector<MapPoint> tr; // taxi route
+    
     void clear_all();
     void init();
     void operation(MapOperationCode op);

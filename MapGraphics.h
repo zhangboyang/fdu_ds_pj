@@ -6,6 +6,7 @@
 #include "MapGUI.h"
 #include "MapOperation.h"
 #include "MapShortestPath.h"
+#include "MapTaxiRoute.h"
 
 class MapGraphics {
     private:
@@ -28,6 +29,7 @@ class MapGraphics {
     MapData *md;
     MapGUI *mgui;
     MapShortestPath *msp;
+    MapTaxiRoute *mtr;
     
     struct vnode {
         float x, y;
@@ -88,6 +90,8 @@ class MapGraphics {
     float nrthick;
     float wrcolor[3]; // way result color
     float wrthick;
+    float trcolor[3]; // taxi route color
+    float trthickness;
     double nrsize;
     
     float sp_src_color[3], sp_dest_color[3], sp_path_color[3]; // shortest path color
@@ -105,6 +109,7 @@ class MapGraphics {
     double zoom_step;
     int use_rtree_for_drawing;
     int use_double_buffer;
+    int use_line_smooth;
     int multisample_level;
     int mouse_btn_zoomin;
     int mouse_btn_zoomout;
@@ -113,6 +118,7 @@ class MapGraphics {
     void target(MapData *md);
     void target_gui(MapGUI *mgui);
     void target_shortestpath(MapShortestPath *msp);
+    void target_taxiroute(MapTaxiRoute *mtr);
     void target_operation(MapOperation *mo);
     
     void get_display_range(double *minx, double *maxx, double *miny, double *maxy);
@@ -121,7 +127,7 @@ class MapGraphics {
     void move_display_range(int x, int y);
     void zoom_display_range(int f, bool by_mouse = false);
     //void zoom_display_by_size(double sizex, double sizey);
-    void move_display_to_point(double gx, double gy);
+    void move_display_to_point(double x, double y);
     void reset_display_range();
     void center_way(MapWay *way);
     void center_point(MapNode *node);

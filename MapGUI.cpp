@@ -27,7 +27,7 @@ class MapMsgBoxFrame: public wxFrame {
         wxBoxSizer *hbox3 = new wxBoxSizer(wxHORIZONTAL);
 
         wxStaticText *lblinfo = new wxStaticText(panel, wxID_ANY, MsgBox_Description);
-        wxTextCtrl *txtinfo = new wxTextCtrl(panel, wxID_ANY, MsgBox_Text, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE);
+        wxTextCtrl *txtinfo = new wxTextCtrl(panel, wxID_ANY, MsgBox_Text, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
         wxButton *btnok = new wxButton(panel, ID_BtnOK, wxT("OK"));
 
         hbox1->Add(lblinfo);
@@ -36,6 +36,11 @@ class MapMsgBoxFrame: public wxFrame {
         vbox->Add(hbox2, 1, wxLEFT | wxRIGHT | wxBOTTOM | wxTOP | wxEXPAND, 10);
         hbox3->Add(btnok);
         vbox->Add(hbox3, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, 10);
+        
+        #ifdef ZBY_OS_LINUX
+        txtinfo->SetFont(wxFont(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+        txtinfo->ShowPosition(0);
+        #endif
         
         panel->SetSizer(vbox);
         btnok->SetFocus();
