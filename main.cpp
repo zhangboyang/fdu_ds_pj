@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
     mg.trnrectsize = str2double(cfgp.query("TAXI_ROUTE_NODE_RECT_SIZE"));
     mg.trnrectthick = str2double(cfgp.query("TAXI_ROUTE_NODE_RECT_THICK"));
     
+    mo.clean_up_nospeed_taxi_node = str2LL(cfgp.query("CLEAN_UP_NOSPEED_TAXI_NODE"));
     
     mg.target(&md);
     mg.target_gui(&mgui);

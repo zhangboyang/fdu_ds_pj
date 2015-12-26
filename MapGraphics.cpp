@@ -775,6 +775,7 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case ';': case ':': op = MapOperation::SHOW_TAXI_ROUTE_BEGIN; break;
         case '<': case ',': op = MapOperation::SHOW_TAXI_ROUTE_PREV_NODE; break;
         case '>': case '.': op = MapOperation::SHOW_TAXI_ROUTE_NEXT_NODE; break;
+        case 'm': op = MapOperation::SELECT_TAXI_ROUTE_NODE; break;
         default: printd("unknown key %c\n", key); return;
     }
     map_operation(op);

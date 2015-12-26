@@ -55,6 +55,7 @@ class MapOperation {
     void show_taxi_route_end();
     void generate_taxi_route_node_report();
     void switch_taxi_route_node(int f);
+    void select_taxi_route_node();
     
     void query_name();
     void select_way();
@@ -115,6 +116,7 @@ class MapOperation {
         SHOW_TAXI_ROUTE_END,
         SHOW_TAXI_ROUTE_NEXT_NODE,
         SHOW_TAXI_ROUTE_PREV_NODE,
+        SELECT_TAXI_ROUTE_NODE,
     };
 
     MapData *md;
@@ -145,6 +147,7 @@ class MapOperation {
     // taxi
     std::vector<std::pair<MapPoint, MapTaxiRoute::taxi_node *> > tr; // taxi route
     int cur_tr_node;
+    int clean_up_nospeed_taxi_node;
     
     void clear_all();
     void init();

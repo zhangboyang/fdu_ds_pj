@@ -3,6 +3,7 @@ MAPDATA=../data/shanghai_map.xml
 
 // taxi data, leave blank if you don't want to process taxi data
 TAXIDATA=../data/shanghai_taxi_20150401.csv
+CLEAN_UP_NOSPEED_TAXI_NODE=1
 
 // title of main window
 TITLE=Zby's Map

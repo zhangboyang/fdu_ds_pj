@@ -470,6 +470,28 @@ void MapOperation::switch_shortest_algo()
 void MapOperation::clear_taxi_route() { tr.clear(); taxi_report.clear(); taxi_node_report.clear(); }
 void MapOperation::show_taxi_route_begin() { if (!tr.empty()) { cur_tr_node = 0; switch_taxi_route_node(0); } }
 void MapOperation::show_taxi_route_end() { if (!tr.empty()) { cur_tr_node = tr.size() - 1; switch_taxi_route_node(0); } }
+void MapOperation::select_taxi_route_node()
+{
+    if (!tr.empty()) {
+        mgui->prepare_inputbox();
+        mgui->set_inputbox_title(L"Select taxi route node");
+        mgui->set_inputbox_description(L"Node ID");
+        wstring uinput = mgui->show_inputbox();
+        if (uinput.length() == 0) return;
+        string str = ws2s(uinput);
+        int node_id;
+        
+        if (sscanf(str.c_str(), "%d", &node_id) != 1) {
+            mg->msg.append(printf2str("ERROR:\n  Invalid id '%s'", str.c_str()));
+            return;
+        }
+        
+        for (cur_tr_node = 0; cur_tr_node < (int) tr.size() - 1; cur_tr_node++)
+            if (tr[cur_tr_node].second->node_id >= node_id)
+                break;
+        switch_taxi_route_node(0);
+    }
+}
 void MapOperation::switch_taxi_route_node(int f)
 {
     if (!tr.empty()) {
@@ -525,13 +547,15 @@ void MapOperation::reload_taxi_route()
     }
     assert(tr.size() == mtr->tnl.size());
     
-    std::vector<std::pair<MapPoint, MapTaxiRoute::taxi_node *> > tr2;
-    for (int i = 0; i < (int) tr.size(); i++) { // clean up nodes with speed = 0
-        if (fcmp(tr[i].second->speed) > 0) {
-            tr2.push_back(tr[i]);
+    if (clean_up_nospeed_taxi_node) {
+        std::vector<std::pair<MapPoint, MapTaxiRoute::taxi_node *> > tr2;
+        for (int i = 0; i < (int) tr.size(); i++) { // clean up nodes with speed = 0
+            if (fcmp(tr[i].second->speed) > 0) {
+                tr2.push_back(tr[i]);
+            }
         }
+        tr.swap(tr2);
     }
-    tr.swap(tr2);
     
     taxi_report.clear();
     taxi_report.append(printf2str("ID: %d\n", mtr->cur_taxi_id));
@@ -652,7 +676,7 @@ void MapOperation::operation(MapOperationCode op)
             case SHOW_TAXI_ROUTE_END: show_taxi_route_end(); break;
             case SHOW_TAXI_ROUTE_NEXT_NODE: switch_taxi_route_node(1); break;
             case SHOW_TAXI_ROUTE_PREV_NODE: switch_taxi_route_node(-1); break;
-            
+            case SELECT_TAXI_ROUTE_NODE: select_taxi_route_node(); break;
             default: assert(0); break;
         }
     }
