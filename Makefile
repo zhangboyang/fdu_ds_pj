@@ -10,7 +10,7 @@ ifeq ($(OS),Windows_NT)
 	LD_FLAGS := $(CXXFLAGS) -lopengl32 -lglu32 -lglew32 -lfreeglut $(shell xml2-config --libs) $(shell wx-config --libs) -Wl,--subsystem,console
 else
 	CXXFLAGS += -DZBY_OS_LINUX
-	LD_FLAGS := $(CXXFLAGS) -lGL -lGLU -lGLEW -lglut $(shell xml2-config --libs) $(shell wx-config --libs) -lprofiler -ltcmalloc
+	LD_FLAGS := $(CXXFLAGS) -lGL -lGLU -lGLEW -lglut $(shell xml2-config --libs) $(shell wx-config --libs)
 endif
 CC_FLAGS := -MMD -MP $(CXXFLAGS)
 EXEC_FILE := pj

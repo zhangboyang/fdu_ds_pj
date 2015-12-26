@@ -12,7 +12,10 @@ void MapTaxiRoute::set_filename(const char *fn) { this->fn = fn; }
 
 void MapTaxiRoute::preprocess() // scan file, calc offsets
 {
-    if (!*fn) return; // if file name is empty, don't process taxi data
+    if (!*fn) { // if file name is empty, don't process taxi data
+        printf("warning: taxi data not specified\n");
+        return;
+    }
     FILE *fp = fopen(fn, "r");
     if (!fp) fail("can't open taxi data file %s", fn);
     

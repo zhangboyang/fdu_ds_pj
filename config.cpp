@@ -30,6 +30,8 @@ void ConfigFilePraser::load(const char *fn)
             fail("duplicate config key %s\n", buf);
         not_queried_keys.insert(string(buf));
     }
+    
+    fclose(f);
 }
 
 const string &ConfigFilePraser::query(const string &key)

@@ -12,7 +12,7 @@
 
 #ifdef ZBY_OS_LINUX
 //#define ENABLE_HEAP_PROFILE
-#define ENABLE_CPU_PROFILE
+//#define ENABLE_CPU_PROFILE
 #endif
 
 #ifdef ENABLE_CPU_PROFILE

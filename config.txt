@@ -1,11 +1,8 @@
 // map data
 MAPDATA=../data/shanghai_map.xml
-//MAPDATA=../data/anheqiao.xml
 
 // taxi data, leave blank if you don't want to process taxi data
 TAXIDATA=../data/shanghai_taxi_20150401.csv
-//TAXIDATA=../data/taxi_small.txt
-//TAXIDATA=
 
 // title of main window
 TITLE=Zby's Map
@@ -17,13 +14,10 @@ LINE_DETAIL_DIST_LOW_LIMIT_FACTOR=0.00
 // details with distance higher than LINE_DETAIL_DIST_HIGH_LIMIT_FACTOR * res must be drawn
 LINE_DETAIL_DIST_HIGH_LIMIT_FACTOR=0.01
 // details with higher than LINE_DETAIL_ANGLE_LIMIT degee between lines will be drawn
-LINE_DETAIL_ANGLE_LIMIT=10
+LINE_DETAIL_ANGLE_LIMIT=5
 
 // graphics settings
 // USE_RTREE_FOR_DRAWING: use r-tree when drawing (slow sort and data transmission from cpu to gpu)
-// SELECTED_COLOR: color of selected object (R|G|B)
-// SELECTED_POINT_RECT_SIZE: size of the rectangle of selected node
-
 USE_RTREE_FOR_DRAWING=0
 USE_DOUBLE_BUFFER=0
 USE_LINE_SMOOTH=0
@@ -36,6 +30,10 @@ ZOOM_STEP=0.8
 ZOOM_BYSIZE_FACTOR=0.2
 ZOOM_LOW_LIMIT=5e-7
 ZOOM_HIGH_LIMIT=1e-2
+
+// color settings
+// SELECTED_COLOR: color of selected object (R|G|B)
+// SELECTED_POINT_RECT_SIZE: size of the rectangle of selected node
 SELECTED_COLOR=1|0|1
 SELECTED_POINT_RECT_SIZE=30
 SELECTED_POINT_RECT_THICK=3
@@ -89,7 +87,7 @@ WAYTYPE_TOTAL=11
 //    r,g,b : from 0.0 to 1.0
 //    thick : line width
 // type 0 is default drawing type
-//            tagname/tagvalue         |level|r   |g   |b   |thick
+//             tagname/tagvalue        |level|r   |g   |b   |thick
 WAYTYPE_TYPE0 =highway/default         |-1   |1   |1   |1   |1
 WAYTYPE_TYPE1 =highway/motorway        |3    |1   |0   |0   |2
 WAYTYPE_TYPE2 =highway/motorway_link   |2    |1   |0   |0   |1
