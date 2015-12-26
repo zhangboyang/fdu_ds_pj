@@ -19,6 +19,7 @@ class MapData {
     friend class MapShortestPath;
     friend class MapOperation;
     friend class MapGraphics;
+    friend class MapPerformanceTest;
     
     std::vector<MapNode *> nl; // node list, public because MapShortestPath
     std::vector<std::vector<MapLine *> > ll; // line list by level

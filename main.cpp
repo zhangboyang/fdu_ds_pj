@@ -7,6 +7,7 @@
 #include "MapOperation.h"
 #include "MapGUI.h"
 #include "MapTaxiRoute.h"
+#include "MapPerformanceTest.h"
 #include "str2type.h"
 #include "wstr.h"
 
@@ -30,6 +31,7 @@ static MapGUI mgui;
 static MapOperation mo;
 static MapShortestPath msp;
 static MapTaxiRoute mtr;
+static MapPerformanceTest mpt;
 
 int main(int argc, char *argv[])
 {
@@ -165,6 +167,9 @@ int main(int argc, char *argv[])
     mg.target_taxiroute(&mtr);
     mg.target_operation(&mo);
     
+    mpt.target(&md);
+    mpt.target_shortestpath(&msp);
+    
     
     mtr.set_filename(cfgp.query("TAXIDATA"));
     timing_start("preprocess taxi data");
@@ -180,10 +185,17 @@ int main(int argc, char *argv[])
     #endif
     
     const char *window_title = cfgp.query("TITLE");
+    
+    int performance_test_mode = str2LL(cfgp.query("ENABLE_PERFORMANCE_TEST_MODE"));
+    
     cfgp.check_not_queried_keys();
     
-    mg.show(window_title, argc, argv); // ui loop, never return
+    if (!performance_test_mode) {
+        mg.show(window_title, argc, argv); // ui loop, never return
+        assert(0);
+    } else {
+        mpt.run();
+    }
     
-    assert(0);
     return 0;
 }

@@ -5,6 +5,9 @@ MAPDATA=../data/shanghai_map.xml
 TAXIDATA=../data/shanghai_taxi_20150401.csv
 CLEAN_UP_NOSPEED_TAXI_NODE=1
 
+// performance test mode: no gui, test r-tree and shortest path automaticly, exit when finished
+ENABLE_PERFORMANCE_TEST_MODE=0
+
 // title of main window
 TITLE=Zby's Map
 
