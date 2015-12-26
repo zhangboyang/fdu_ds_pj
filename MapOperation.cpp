@@ -467,21 +467,79 @@ void MapOperation::switch_shortest_algo()
     sp_algo = (sp_algo + diff + cnt) % cnt;
 }
 
-void MapOperation::clear_taxi_route() { tr.clear(); }
-void MapOperation::show_taxi_route_begin() { if (!tr.empty()) mg->move_display_to_point(tr.front().x, tr.front().y); }
-void MapOperation::show_taxi_route_end() { if (!tr.empty()) mg->move_display_to_point(tr.back().x, tr.back().y); }
+void MapOperation::clear_taxi_route() { tr.clear(); taxi_report.clear(); taxi_node_report.clear(); }
+void MapOperation::show_taxi_route_begin() { if (!tr.empty()) { cur_tr_node = 0; switch_taxi_route_node(0); } }
+void MapOperation::show_taxi_route_end() { if (!tr.empty()) { cur_tr_node = tr.size() - 1; switch_taxi_route_node(0); } }
+void MapOperation::switch_taxi_route_node(int f)
+{
+    if (!tr.empty()) {
+        cur_tr_node = (cur_tr_node + f + tr.size()) % tr.size();
+        generate_taxi_route_node_report();
+        mg->move_display_to_point(tr[cur_tr_node].first.x, tr[cur_tr_node].first.y);
+    }
+}
+void MapOperation::generate_taxi_route_node_report()
+{
+    if (!tr.empty()) {
+        taxi_node_report.clear();
+        taxi_node_report.append(printf2str("Cur Node: %d\n", tr[cur_tr_node].second->node_id));
+        taxi_node_report.append(printf2str("Lat: %f\n", tr[cur_tr_node].second->lat));
+        taxi_node_report.append(printf2str("Lon: %f\n", tr[cur_tr_node].second->lon));
+        taxi_node_report.append(printf2str("Date: %.10s\n", tr[cur_tr_node].second->timestr));
+        taxi_node_report.append(printf2str("Time: %.8s\n", tr[cur_tr_node].second->timestr + 11));
+        taxi_node_report.append(printf2str("Alert: %s\n", tr[cur_tr_node].second->is_alert ? "YES" : "NO"));
+        taxi_node_report.append(printf2str("Light: %c\n", tr[cur_tr_node].second->light_state));
+        taxi_node_report.append(printf2str("Empty: %s\n", tr[cur_tr_node].second->is_empty ? "YES" : "NO"));
+        taxi_node_report.append(printf2str("Highway: %s\n", tr[cur_tr_node].second->is_highway ? "YES" : "NO"));
+        taxi_node_report.append(printf2str("Brake: %s\n", tr[cur_tr_node].second->is_brake ? "YES" : "NO"));
+        taxi_node_report.append(printf2str("Speed: %.1f km/h\n", tr[cur_tr_node].second->speed));
+        taxi_node_report.append(printf2str("Direction: %.0f\n", tr[cur_tr_node].second->direction));
+        taxi_node_report.append(printf2str("GPS: %d\n", tr[cur_tr_node].second->gps_count));
+    }
+}
+
+
 void MapOperation::reload_taxi_route()
 {
+    assert(mtr->tnl.size() > 0);
+    
     tr.clear();
     for (vector<MapTaxiRoute::taxi_node>::iterator tnit = mtr->tnl.begin(); tnit != mtr->tnl.end(); tnit++) {
         double lat = tnit->lat;
         double lon = tnit->lon;
         double x, y;
         md->trans_coord(lat, lon, &x, &y);
-        tr.push_back(MapPoint(x, y));
+        tr.push_back(make_pair(MapPoint(x, y), &*tnit));
         //printd("%f %f\n", x, y);
     }
+    
+    double sum[2] = {};
+    int empty_cnt = tr.back().second->is_empty; // calc empty rate
+    for (int i = 0; i < (int) tr.size() - 1; i++) {
+        MapPoint A = tr[i].first;
+        MapPoint B = tr[i + 1].first;
+        double dist = vlen(B - A);
+        int is_empty = !!tr[i].second->is_empty;
+        sum[is_empty] += dist;
+        empty_cnt += is_empty;
+    }
+    assert(tr.size() == mtr->tnl.size());
+    
+    std::vector<std::pair<MapPoint, MapTaxiRoute::taxi_node *> > tr2;
+    for (int i = 0; i < (int) tr.size(); i++) { // clean up nodes with speed = 0
+        if (fcmp(tr[i].second->speed) > 0) {
+            tr2.push_back(tr[i]);
+        }
+    }
+    tr.swap(tr2);
+    
+    taxi_report.clear();
+    taxi_report.append(printf2str("ID: %d\n", mtr->cur_taxi_id));
+    taxi_report.append(printf2str("Node: %d/%d\n", (int) tr.size(), (int) mtr->tnl.size())); 
+    taxi_report.append(printf2str("Empty: %.1f%%\n", sum[1] / (sum[0] + sum[1]) * 100));
+    taxi_report.append("Length: " + md->get_length_string((sum[0] + sum[1]) * MapData::dist_factor) + '\n');
 }
+
 void MapOperation::select_taxi_route()
 {
     mgui->prepare_inputbox();
@@ -504,8 +562,11 @@ void MapOperation::select_taxi_route()
         return;
     }
     
+    cur_tr_node = 0;
     mtr->load_route(taxi_index);
+    assert(!mtr->tnl.empty());
     reload_taxi_route();
+    generate_taxi_route_node_report();
 }
 
 void MapOperation::show_taxi_list()
@@ -589,7 +650,9 @@ void MapOperation::operation(MapOperationCode op)
             case SHOW_TAXI_LIST: show_taxi_list(); break;
             case SHOW_TAXI_ROUTE_BEGIN: show_taxi_route_begin(); break;
             case SHOW_TAXI_ROUTE_END: show_taxi_route_end(); break;
-
+            case SHOW_TAXI_ROUTE_NEXT_NODE: switch_taxi_route_node(1); break;
+            case SHOW_TAXI_ROUTE_PREV_NODE: switch_taxi_route_node(-1); break;
+            
             default: assert(0); break;
         }
     }

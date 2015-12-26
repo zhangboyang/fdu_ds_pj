@@ -53,6 +53,8 @@ class MapOperation {
     void reload_taxi_route();
     void show_taxi_route_begin();
     void show_taxi_route_end();
+    void generate_taxi_route_node_report();
+    void switch_taxi_route_node(int f);
     
     void query_name();
     void select_way();
@@ -111,6 +113,8 @@ class MapOperation {
         SHOW_TAXI_LIST,
         SHOW_TAXI_ROUTE_BEGIN,
         SHOW_TAXI_ROUTE_END,
+        SHOW_TAXI_ROUTE_NEXT_NODE,
+        SHOW_TAXI_ROUTE_PREV_NODE,
     };
 
     MapData *md;
@@ -130,6 +134,7 @@ class MapOperation {
     int sp_algo;
     std::string sp_report; // report is displayed by bitmap string
     std::string query_report;
+    std::string taxi_report, taxi_node_report;
     
     std::vector<MapPoint> pvl; // poly vertex list
     
@@ -138,7 +143,8 @@ class MapOperation {
     std::vector<MapWay *> wresult;
     
     // taxi
-    std::vector<MapPoint> tr; // taxi route
+    std::vector<std::pair<MapPoint, MapTaxiRoute::taxi_node *> > tr; // taxi route
+    int cur_tr_node;
     
     void clear_all();
     void init();

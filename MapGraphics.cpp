@@ -253,7 +253,16 @@ void MapGraphics::draw_vertex(double x, double y)
 
 void MapGraphics::highlight_point(MapNode *node, double size, float color[], float thick)
 {
-    double x = node->x, y = node->y;
+    highlight_point(node->x, node->y, size, color, thick);
+}
+
+void MapGraphics::highlight_point(const MapPoint &p, double size, float color[], float thick)
+{
+    highlight_point(p.x, p.y, size, color, thick);
+}
+
+void MapGraphics::highlight_point(double x, double y, double size, float color[], float thick)
+{
     double diff = size / 2.0 * (dmaxx - dminx) / window_width;
     glColor3f(color[0], color[1], color[2]);
     glLineWidth(thick);
@@ -549,12 +558,17 @@ void MapGraphics::redraw()
     }
     // draw taxi route
     if (!mo->tr.empty()) {
-        glColor3f(trcolor[0], trcolor[1], trcolor[2]);
         glLineWidth(trthickness);
-        printd("thick=%f\n", trthickness);
         glBegin(GL_LINE_STRIP);
-        for (vector<MapPoint>::iterator it = mo->tr.begin(); it != mo->tr.end(); it++) {
-            draw_vertex(it->x, it->y);
+        for (vector<pair<MapPoint, MapTaxiRoute::taxi_node *> >::iterator it = mo->tr.begin(); it != mo->tr.end(); it++) {
+            double x = it->first.x;
+            double y = it->first.y;
+            int is_empty = it->second->is_empty;
+            if (is_empty)   
+                glColor3f(trecolor[0], trecolor[1], trecolor[2]);
+            else
+                glColor3f(trcolor[0], trcolor[1], trcolor[2]);
+            draw_vertex(x, y);
         }
         glEnd();
     }
@@ -594,7 +608,11 @@ void MapGraphics::redraw()
     // draw shortest path src and dest
     if (mo->sp_start) highlight_point(mo->sp_start, sp_vertex_rect_size, sp_src_color, sp_vertex_rect_thick);
     if (mo->sp_end) highlight_point(mo->sp_end, sp_vertex_rect_size, sp_dest_color, sp_vertex_rect_thick);
-    
+    // draw taxi node
+    if (!mo->tr.empty()) {
+        assert(0 <= mo->cur_tr_node && mo->cur_tr_node < (int) mo->tr.size());
+        highlight_point(mo->tr[mo->cur_tr_node].first, trnrectsize, trncolor, trnrectthick);
+    }
     
     // draw messages
     string redraw_str = printf2str(
@@ -624,7 +642,7 @@ void MapGraphics::redraw()
             sway_str += "Length: " + md->get_length_string(way_length) + '\n';
             if (sway->is_closed()) {
                 double way_area = sway->calc_area() * sq(MapData::dist_factor);
-                sway_str += "Ares: " + md->get_area_string(way_area) + '\n';
+                sway_str += "Area: " + md->get_area_string(way_area) + '\n';
             }
             sway_str += printf2str("SP: %s\n", sway->on_shortest_path ? "YES" : "NO");
         }
@@ -636,11 +654,16 @@ void MapGraphics::redraw()
         if (!mo->query_report.empty()) {
             query_str = "== Query ==\n" + mo->query_report;
         }
+        string taxi_str;
+        if (!mo->taxi_report.empty()) {
+            taxi_str = "== Taxi Route ==\n" + mo->taxi_report;
+            taxi_str.append(mo->taxi_node_report);
+        }
         
         string str_to_print = 
             "== Last Frame ==\n" + last_redraw_str +
             "== This Frame ==\n" + redraw_str +
-            snode_str + sway_str + query_str + shortestpath_str;
+            snode_str + sway_str + query_str + shortestpath_str + taxi_str;
         if (!msg.empty()) str_to_print.append("== Message ==\n" + msg);
         print_string(str_to_print.c_str());
     }
@@ -739,10 +762,6 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case '+': case '=' : op = MapOperation::ZOOM_IN; break;
         case 'z': op = MapOperation::ADD_POLYVERTEX; break;
         case 'x': op = MapOperation::CLEAR_POLYVERTEX; break;
-        case 'k': op = MapOperation::MOVE_UP; break;
-        case 'j': op = MapOperation::MOVE_DOWN; break;
-        case 'h': op = MapOperation::MOVE_LEFT; break;
-        case 'l': op = MapOperation::MOVE_RIGHT; break;
         case '\b': op = MapOperation::POP_DISPLAY; break;
         case '\x1b': op = MapOperation::CLEAR_ALL; break;
         case 'a': op = MapOperation::SET_SHORTESTPATH_START; break;
@@ -753,8 +772,9 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case '\\': case '|': show_message ^= 1; op = MapOperation::NOP; break;
         case '/': case '?': op = MapOperation::SELECT_TAXI_ROUTE; break;
         case '\'': case '"': op = MapOperation::SHOW_TAXI_LIST; break;
-        case '<': case ',': op = MapOperation::SHOW_TAXI_ROUTE_BEGIN; break;
-        case '>': case '.': op = MapOperation::SHOW_TAXI_ROUTE_END; break;
+        case ';': case ':': op = MapOperation::SHOW_TAXI_ROUTE_BEGIN; break;
+        case '<': case ',': op = MapOperation::SHOW_TAXI_ROUTE_PREV_NODE; break;
+        case '>': case '.': op = MapOperation::SHOW_TAXI_ROUTE_NEXT_NODE; break;
         default: printd("unknown key %c\n", key); return;
     }
     map_operation(op);

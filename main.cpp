@@ -147,7 +147,16 @@ int main(int argc, char *argv[])
     if (sscanf(cfgp.query("TAXI_ROUTE_COLOR"), "%f | %f | %f", // taxi route colors
                  &mg.trcolor[0], &mg.trcolor[1], &mg.trcolor[2]) != 3)
         fail("can't parse trcolor");
+    if (sscanf(cfgp.query("TAXI_ROUTE_EMPTY_COLOR"), "%f | %f | %f",
+                 &mg.trecolor[0], &mg.trecolor[1], &mg.trecolor[2]) != 3)
+        fail("can't parse trecolor");
     mg.trthickness = str2double(cfgp.query("TAXI_ROUTE_THICK"));
+    if (sscanf(cfgp.query("TAXI_ROUTE_NODE_COLOR"), "%f | %f | %f",
+                 &mg.trncolor[0], &mg.trncolor[1], &mg.trncolor[2]) != 3)
+        fail("can't parse trncolor");
+    mg.trnrectsize = str2double(cfgp.query("TAXI_ROUTE_NODE_RECT_SIZE"));
+    mg.trnrectthick = str2double(cfgp.query("TAXI_ROUTE_NODE_RECT_THICK"));
+    
     
     mg.target(&md);
     mg.target_gui(&mgui);

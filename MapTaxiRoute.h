@@ -8,6 +8,7 @@ class MapTaxiRoute {
     public:
     struct taxi_node {
         int taxi_id;
+        int node_id;
         char timestr[20];
         int is_alert;
         double lon, lat;
@@ -22,6 +23,7 @@ class MapTaxiRoute {
     
     std::vector<taxi_node> tnl; // taxi node list
     std::vector<std::pair<int, std::pair<int, long> > > tl; // taxi list (id, (node count, offset))
+    int cur_taxi_id;
     
     void set_filename(const char *fn); // fn shouldn't be temporary storage
     void preprocess();

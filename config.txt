@@ -2,9 +2,10 @@
 MAPDATA=../data/shanghai_map.xml
 //MAPDATA=../data/anheqiao.xml
 
-// taxi data
+// taxi data, leave blank if you don't want to process taxi data
 TAXIDATA=../data/shanghai_taxi_20150401.csv
 //TAXIDATA=../data/taxi_small.txt
+//TAXIDATA=
 
 // title of main window
 TITLE=Zby's Map
@@ -62,8 +63,12 @@ SHORTESTPATH_SRC_COLOR=1|0|0
 SHORTESTPATH_DEST_COLOR=1|0.75|0
 SHORTESTPATH_PATH_COLOR=1|0|0
 SHORTESTPATH_PATH_THICK=10
-TAXI_ROUTE_COLOR=1|1|0
+TAXI_ROUTE_COLOR=0|1|0
+TAXI_ROUTE_EMPTY_COLOR=1|1|0
 TAXI_ROUTE_THICK=5
+TAXI_ROUTE_NODE_COLOR=0|1|1
+TAXI_ROUTE_NODE_RECT_SIZE=20
+TAXI_ROUTE_NODE_RECT_THICK=3
 
 // total level count
 LEVEL_TOTAL=4

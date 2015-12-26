@@ -57,6 +57,8 @@ class MapGraphics {
     
     void print_string(const char *str);
     void highlight_point(MapNode *node, double size, float color[], float thick);
+    void highlight_point(double x, double y, double size, float color[], float thick);
+    void highlight_point(const MapPoint &p, double size, float color[], float thick);
     void draw_way(MapWay *way, bool force_level = false);
     void draw_vertex(double x, double y);
     void reload_vertex();
@@ -91,9 +93,12 @@ class MapGraphics {
     float wrcolor[3]; // way result color
     float wrthick;
     float trcolor[3]; // taxi route color
+    float trecolor[3]; // taxi route color, when taxi is empty
     float trthickness;
+    double trnrectsize; // taxi route node
+    float trncolor[3];
+    float trnrectthick;
     double nrsize;
-    
     float sp_src_color[3], sp_dest_color[3], sp_path_color[3]; // shortest path color
     float sp_path_thick;
     double sp_vertex_rect_size;

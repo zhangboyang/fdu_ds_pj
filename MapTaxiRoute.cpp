@@ -12,6 +12,7 @@ void MapTaxiRoute::set_filename(const char *fn) { this->fn = fn; }
 
 void MapTaxiRoute::preprocess() // scan file, calc offsets
 {
+    if (!*fn) return; // if file name is empty, don't process taxi data
     FILE *fp = fopen(fn, "r");
     if (!fp) fail("can't open taxi data file %s", fn);
     
@@ -81,6 +82,7 @@ void MapTaxiRoute::load_route(int taxi_index)
 {
     assert(0 <= taxi_index && taxi_index < (int) tl.size());
     int taxi_id = tl[taxi_index].first;
+    cur_taxi_id = taxi_id;
     long offset = tl[taxi_index].second.second;
     
     printd("id = %d, offset = %ld\n", taxi_id, offset);
@@ -106,9 +108,9 @@ void MapTaxiRoute::load_route(int taxi_index)
                 &nd.light_state, &nd.is_highway, &nd.is_brake, &nd.speed, &nd.direction,
                 &nd.gps_count, trash);
         
-        if (ret != 12) {
+        if (ret != 12 || strlen(nd.timestr) != 19) {
             printf("can't prase taxi data line:\n");
-            printf("[%d,%s,%d,%lf,%lf,%d,%c,%d,%d,%f,%f,%d]\n",
+            printf("[%d,%s,%d,%f,%f,%d,%c,%d,%d,%f,%f,%d]\n",
                 nd.taxi_id, nd.timestr, nd.is_alert, nd.lon, nd.lat, nd.is_empty,
                 nd.light_state, nd.is_highway, nd.is_brake, nd.speed, nd.direction,
                 nd.gps_count);
@@ -117,6 +119,7 @@ void MapTaxiRoute::load_route(int taxi_index)
         }
         
         assert(nd.taxi_id == taxi_id);
+        nd.node_id = tnl.size();
         tnl.push_back(nd);
     }
     
