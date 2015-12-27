@@ -31,8 +31,8 @@ void MapPerformanceTest::test_shortestpath()
     vector<MapLine *> result;
     double time_sum[MapShortestPath::ALGO_COUNT] = {};
     for (int i = 1; i <= MAX_SHORTESTPATH_TESTCASE; i++) {
-        printf("%-3d", i);
-        printf("%12lld->%-12lld", npool[i * 2]->id, npool[i * 2 + 1]->id);
+        printf("%-7d", i);
+        printf("%-22s", printf2str(LL_CS "->" LL_CS, npool[i * 2]->id, npool[i * 2 + 1]->id).c_str());
         double reference_time = 0;
         for (int algo = 0; algo < MapShortestPath::ALGO_COUNT; algo++) {
             result.clear();
