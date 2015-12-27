@@ -8,6 +8,62 @@
 #include <algorithm>
 using namespace std;
 
+#ifdef ZBY_OS_WINDOWS // fgets() on windows is very slow, use my faster version
+#define USE_MY_FGETS
+#endif
+
+#ifdef USE_MY_FGETS
+static const int MY_BUFSIZE = MAXLINE;
+static FILE *my_fp;
+static long my_bigoffset;
+static long my_offset;
+static int my_smalloffset;
+static int my_cur_buf_size;
+static int my_eof_flag;
+static char my_buf[MY_BUFSIZE];
+
+
+static inline long my_ftell() { return my_offset + my_smalloffset; }
+static inline int my_feof() { return my_eof_flag && my_smalloffset >= my_cur_buf_size; }
+static inline void my_reload_buffer()
+{
+    my_cur_buf_size = fread(my_buf, 1, MY_BUFSIZE, my_fp);
+    my_eof_flag = my_cur_buf_size < MY_BUFSIZE;
+    my_bigoffset += my_cur_buf_size;
+}
+
+static inline void my_setfp(FILE *fp)
+{
+    my_fp = fp;
+    my_smalloffset = 0;
+    my_offset = 0;
+    my_bigoffset = 0;
+    my_eof_flag = 0;
+    my_reload_buffer();
+}
+
+static inline char my_fgetc()
+{
+    char ret = my_buf[my_smalloffset++];
+    if (my_smalloffset >= my_cur_buf_size) {
+        my_reload_buffer();
+        my_smalloffset = 0;
+        my_offset += my_cur_buf_size;
+    }
+    return ret;
+}
+
+static inline int my_readline(char *buf, int buf_size)
+{
+    if (my_feof()) return 0;
+    char *buf_end = buf + buf_size;
+    while (buf < buf_end && !my_feof() && (*buf++ = my_fgetc()) != '\n');
+    if (buf < buf_end) *buf = '\0'; else fail("buf size is too small");
+    return 1;
+}
+#endif
+
+
 void MapTaxiRoute::set_filename(const char *fn) { this->fn = fn; }
 
 void MapTaxiRoute::preprocess() // scan file, calc offsets
@@ -22,14 +78,19 @@ void MapTaxiRoute::preprocess() // scan file, calc offsets
     set<int> id_set;
     char buf[MAXLINE];
     int tot_line_cnt = 0;
-    int *node_cnt_ptr;
+    int *node_cnt_ptr = NULL;
     char taxi_id[MAXLINE];
-    int taxi_id_len;
+    int taxi_id_len = 0;
     int taxi_id_num;
     int flag = 1; // flag: try to read texi_id
     long offset;
     int ret;
+#ifdef USE_MY_FGETS
+    my_setfp(fp);
+    while (offset = my_ftell(), my_readline(buf, sizeof(buf))) {
+#else
     while (offset = ftell(fp), fgets(buf, sizeof(buf), fp)) {
+#endif
         char *ptr = buf;
         while (*ptr && isspace(*ptr)) ptr++;
         
