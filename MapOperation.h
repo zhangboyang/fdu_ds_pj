@@ -37,6 +37,7 @@ class MapOperation {
     void select_results();
     void clear_results();
     void clear_select();
+    void clear_query_result();
     
     MapNode *choose_nearest_sp_node();
     void set_shortestpath_start();
@@ -103,6 +104,7 @@ class MapOperation {
         SHOW_QUERY_RESULT,
         ADD_POLYVERTEX,
         CLEAR_POLYVERTEX,
+        CLEAR_QUERY_RESULT,
         QUERY_TAG,
         SET_SHORTESTPATH_START,
         SET_SHORTESTPATH_END,
@@ -117,6 +119,7 @@ class MapOperation {
         SHOW_TAXI_ROUTE_NEXT_NODE,
         SHOW_TAXI_ROUTE_PREV_NODE,
         SELECT_TAXI_ROUTE_NODE,
+        CLEAR_TAXI_ROUTE,
     };
 
     MapData *md;

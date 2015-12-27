@@ -762,6 +762,7 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case '+': case '=' : op = MapOperation::ZOOM_IN; break;
         case 'z': op = MapOperation::ADD_POLYVERTEX; break;
         case 'x': op = MapOperation::CLEAR_POLYVERTEX; break;
+        case 'c': op = MapOperation::CLEAR_QUERY_RESULT; break;
         case '\b': op = MapOperation::POP_DISPLAY; break;
         case '\x1b': op = MapOperation::CLEAR_ALL; break;
         case 'a': op = MapOperation::SET_SHORTESTPATH_START; break;
@@ -776,6 +777,7 @@ void MapGraphics::keyevent(unsigned char key, int x, int y)
         case '<': case ',': op = MapOperation::SHOW_TAXI_ROUTE_PREV_NODE; break;
         case '>': case '.': op = MapOperation::SHOW_TAXI_ROUTE_NEXT_NODE; break;
         case 'm': op = MapOperation::SELECT_TAXI_ROUTE_NODE; break;
+        case 'l': op = MapOperation::CLEAR_TAXI_ROUTE; break;
         default: printd("unknown key %c\n", key); return;
     }
     map_operation(op);

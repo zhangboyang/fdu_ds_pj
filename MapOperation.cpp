@@ -609,6 +609,13 @@ void MapOperation::show_taxi_list()
     mgui->show_msgbox();
 }
 
+void MapOperation::clear_query_result()
+{
+    clear_results();
+    clear_select();
+    clear_polyvertex();
+}
+
 void MapOperation::clear_all()
 {
     clear_results();
@@ -663,6 +670,7 @@ void MapOperation::operation(MapOperationCode op)
             case SHOW_QUERY_RESULT: show_results(); break;
             case ADD_POLYVERTEX: add_polyvertex(); break;
             case CLEAR_POLYVERTEX: clear_polyvertex(); break;
+            case CLEAR_QUERY_RESULT: clear_query_result(); break;
             case QUERY_TAG: query_tag(); break;
             case SET_SHORTESTPATH_START: set_shortestpath_start(); break;
             case SET_SHORTESTPATH_END: set_shortestpath_end(); break;
@@ -677,6 +685,7 @@ void MapOperation::operation(MapOperationCode op)
             case SHOW_TAXI_ROUTE_NEXT_NODE: switch_taxi_route_node(1); break;
             case SHOW_TAXI_ROUTE_PREV_NODE: switch_taxi_route_node(-1); break;
             case SELECT_TAXI_ROUTE_NODE: select_taxi_route_node(); break;
+            case CLEAR_TAXI_ROUTE: clear_taxi_route(); break;
             default: assert(0); break;
         }
     }
