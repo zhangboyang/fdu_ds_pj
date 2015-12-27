@@ -29,4 +29,11 @@ inline static int fcmp(double x) { return fabs(x) < F_EPS ? 0 : (x > 0 ? 1 : -1)
 /* common buffer size */
 #define MAXLINE 4096
 
+/* long long conversion specifications with scanf and printf */
+#ifdef ZBY_OS_WINDOWS
+#define LL_CS "%I64d"
+#else
+#define LL_CS "%lld"
+#endif
+
 #endif

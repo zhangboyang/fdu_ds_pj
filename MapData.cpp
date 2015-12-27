@@ -80,7 +80,7 @@ void MapData::set_node_coord_by_geo(MapNode *node, double lat, double lon)
 MapNode *MapData::get_node_by_id(LL id)
 {
     map<LL, MapNode *>::iterator it = nm.find(id);
-    if (it == nm.end()) fail("node object %lld not found", id);
+    if (it == nm.end()) fail("node object " LL_CS " not found", id);
     return it->second;
 }
 
@@ -296,16 +296,16 @@ void MapData::print_stat()
 
 #ifdef DEBUG
 #define memsz(sz, esz) ((LL) (sz) * (esz) / 1048576.0)
-#define printsz(fmt, sz, esz) printf(" " fmt "%lld(%.2fmb)", (LL) (sz), memsz((sz), (esz)))
+#define printsz(fmt, sz, esz) printf(" " fmt LL_CS "(%.2fmb)", (LL) (sz), memsz((sz), (esz)))
 
     printf("object size statistics:\n");
-    printf(" mapobject: %lld\n", (LL) sizeof(MapObject));
-    printf(" mapnode: %lld\n", (LL) sizeof(MapNode));
-    printf(" mapline: %lld\n", (LL) sizeof(MapLine));
-    printf(" mapway: %lld\n", (LL) sizeof(MapWay));
-    printf(" mapdata: %lld\n", (LL) sizeof(MapData));
-    printf(" std::vector<void *>: %lld\n", (LL) sizeof(vector<void *>));
-    printf(" std::map<LL, void *>: %lld\n", (LL) sizeof(map<LL, void *>));
+    printf(" mapobject: " LL_CS "\n", (LL) sizeof(MapObject));
+    printf(" mapnode: " LL_CS "\n", (LL) sizeof(MapNode));
+    printf(" mapline: " LL_CS "\n", (LL) sizeof(MapLine));
+    printf(" mapway: " LL_CS "\n", (LL) sizeof(MapWay));
+    printf(" mapdata: " LL_CS "\n", (LL) sizeof(MapData));
+    printf(" std::vector<void *>: " LL_CS "\n", (LL) sizeof(vector<void *>));
+    printf(" std::map<LL, void *>: " LL_CS "\n", (LL) sizeof(map<LL, void *>));
     printf("map memory statistics:\n");
     printf(" mapobject:");
     printsz("node: ", nl.size(), sizeof(MapNode));

@@ -474,7 +474,7 @@ void MapGraphics::redraw()
     if (show_rtree) {
         vector<MapRect> rtree_rects;
         md->lrt[clvl].get_all_tree_rect(rtree_rects);
-        printd("rect count = %lld\n", (LL) rtree_rects.size());
+        printd("rect count = " LL_CS "\n", (LL) rtree_rects.size());
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glLineWidth(1.0f);
         glColor3f(0.0f, 1.0f, 0.0f);
@@ -616,7 +616,7 @@ void MapGraphics::redraw()
     
     // draw messages
     string redraw_str = printf2str(
-        "Level: %d\nWay: %lld\nLine: %lld\nVertex: %d+%d\nMouse: %s\nSP Algo: %s\nOperation: %.2f ms\n",
+        "Level: %d\nWay: " LL_CS "\nLine: " LL_CS "\nVertex: %d+%d\nMouse: %s\nSP Algo: %s\nOperation: %.2f ms\n",
             clvl, (LL) dwl.size(), (LL) dll.size(), vertex_count, (int) vct_vl[clvl].size(), 
             select_flag ? "Select" : "Drag", msp->get_algo_name(mo->sp_algo),last_operation_time);
     if (dll_reload_time >= 0) redraw_str += printf2str("R-tree: %.2f ms\n", dll_reload_time); // vertex reloaded
@@ -630,14 +630,14 @@ void MapGraphics::redraw()
             snode_str = "== Selected Node ==\n";
             MapNode *snode = mo->snode;
             snode_str += printf2str(
-                "ID: %lld\nLat: %f\nLon: %f\nSP: %s\n",
+                "ID: " LL_CS "\nLat: %f\nLon: %f\nSP: %s\n",
                 snode->id, snode->lat, snode->lon, snode->on_shortest_path ? "YES" : "NO");
         }
         string sway_str;
         if (mo->sway) {
             sway_str = "== Selected Way ==\n";
             MapWay *sway = mo->sway;
-            sway_str += printf2str("ID: %lld\n", sway->id);
+            sway_str += printf2str("ID: " LL_CS "\n", sway->id);
             double way_length = sway->calc_length() * MapData::dist_factor;
             sway_str += "Length: " + md->get_length_string(way_length) + '\n';
             if (sway->is_closed()) {

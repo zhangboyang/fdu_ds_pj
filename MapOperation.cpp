@@ -195,8 +195,8 @@ void MapOperation::query_name()
     while (*ptr && isdigit(*ptr)) ptr++;
     if (!*ptr && ptr != str.c_str()) {
         num_flag = 1;
-        sscanf(str.c_str(), "%lld", &num);
-        printd("name is number %lld\n", num);
+        sscanf(str.c_str(), LL_CS, &num);
+        printd("name is number " LL_CS "\n", num);
     }
     
     query_timer_start();
@@ -247,7 +247,7 @@ void MapOperation::show_results()
     
     for (vector<MapNode *>::iterator it = nresult.begin(); it != nresult.end(); it++) {
         MapNode *node = *it;
-        mgui->set_msgbox_append(s2ws(printf2str("== Node Result %d : #%lld ==", (int)(it - nresult.begin()), node->id)));
+        mgui->set_msgbox_append(s2ws(printf2str("== Node Result %d : #" LL_CS " ==", (int)(it - nresult.begin()), node->id)));
         msgbox_append_names((MapObject *) node);
         msgbox_append_tags((MapObject *) node);
     }
@@ -256,7 +256,7 @@ void MapOperation::show_results()
     
     for (vector<MapWay *>::iterator it = wresult.begin(); it != wresult.end(); it++) {
         MapWay *way = *it;
-        mgui->set_msgbox_append(s2ws(printf2str("== Way Result %d : #%lld ==", (int)(it - wresult.begin()), way->id)));
+        mgui->set_msgbox_append(s2ws(printf2str("== Way Result %d : #" LL_CS " ==", (int)(it - wresult.begin()), way->id)));
         msgbox_append_names((MapObject *) way);
         msgbox_append_tags((MapObject *) way);
     }
@@ -278,8 +278,8 @@ void MapOperation::show_wayinfo()
     if (sway) {
         mgui->prepare_msgbox();
         mgui->set_msgbox_title(L"Way Information");
-        mgui->set_msgbox_description(s2ws(printf2str("Here is information about way #%lld", sway->id)));
-        mgui->set_msgbox_append(s2ws(printf2str("[id] #%lld", sway->id)));
+        mgui->set_msgbox_description(s2ws(printf2str("Here is information about way #" LL_CS, sway->id)));
+        mgui->set_msgbox_append(s2ws(printf2str("[id] #" LL_CS, sway->id)));
         
         // way names
         msgbox_append_names((MapObject *) sway);
@@ -306,8 +306,8 @@ void MapOperation::show_nodeinfo()
     if (snode) {
         mgui->prepare_msgbox();
         mgui->set_msgbox_title(s2ws("Node Information"));
-        mgui->set_msgbox_description(s2ws(printf2str("Here is information about node #%lld", snode->id)));
-        mgui->set_msgbox_append(s2ws(printf2str("[id] #%lld", snode->id))); // id
+        mgui->set_msgbox_description(s2ws(printf2str("Here is information about node #" LL_CS, snode->id)));
+        mgui->set_msgbox_append(s2ws(printf2str("[id] #" LL_CS, snode->id))); // id
         msgbox_append_names((MapObject *) snode);// node names
         mgui->set_msgbox_append(s2ws(printf2str("[coord] lat=%f lon=%f", snode->lat, snode->lon))); // node coord
         msgbox_append_tags((MapObject *) snode); // node tags
@@ -385,7 +385,7 @@ bool MapOperation::query_main_name(MapObject *ptr, wstring &name)
 wstring MapOperation::get_node_string(MapNode *node)
 {
     wstring ret, name;
-    ret.append(s2ws(printf2str(" node %lld", node->id)));
+    ret.append(s2ws(printf2str(" node " LL_CS, node->id)));
     if (query_main_name((MapObject *) node, name)) ret.append(L" name " + name);
     //ret.append(s2ws(printf2str(" lat=%f lon=%f", node->lat, node->lon)));
     return ret;
@@ -393,7 +393,7 @@ wstring MapOperation::get_node_string(MapNode *node)
 wstring MapOperation::get_way_string(MapWay *way)
 {
     wstring ret, name;
-    ret.append(s2ws(printf2str(" way %lld", way->id)));
+    ret.append(s2ws(printf2str(" way " LL_CS, way->id)));
     if (query_main_name((MapObject *) way, name)) ret.append(L" name " + name);
     return ret;
 }
@@ -423,7 +423,7 @@ void MapOperation::show_shortestpath_result()
     if (!sp_result.empty()) {
         mgui->prepare_msgbox();
         mgui->set_msgbox_title(L"Shortest Path");
-        mgui->set_msgbox_description(s2ws(printf2str("Here is the shortest path from node #%lld to node #%lld", sp_start->id, sp_end->id)));
+        mgui->set_msgbox_description(s2ws(printf2str("Here is the shortest path from node #" LL_CS " to node #" LL_CS, sp_start->id, sp_end->id)));
         mgui->set_msgbox_append(L"[length] " + s2ws(md->get_length_string(sp_mindist)));
         mgui->set_msgbox_append(L"[algorithm] " + s2ws(msp->get_algo_name(sp_algo)));
         mgui->set_msgbox_append(s2ws(printf2str("[time] %.2f ms", sp_time)));

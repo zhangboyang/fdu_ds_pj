@@ -443,7 +443,7 @@ class MapRTree {
                     check_failed = true;
         }
         if (check_failed) {
-            printf("rt_result=%lld, bf_result=%lld\n", (LL) rt_result.size(), (LL) bf_result.size());
+            printf("rt_result=" LL_CS ", bf_result=" LL_CS "\n", (LL) rt_result.size(), (LL) bf_result.size());
             printf("r-tree result:\n");
             for (int i = 0; i < (int) rt_result.size(); i++)
                 printf("%p ", rt_result[i]);
