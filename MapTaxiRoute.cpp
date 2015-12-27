@@ -13,6 +13,9 @@ using namespace std;
 #endif
 
 #ifdef USE_MY_FGETS
+// note: there are differences between my_ versions and standard versions
+//       but our program don't care these differences
+
 static const int MY_BUFSIZE = MAXLINE;
 static FILE *my_fp;
 static long my_bigoffset;
@@ -72,7 +75,7 @@ void MapTaxiRoute::preprocess() // scan file, calc offsets
         printf("warning: taxi data not specified\n");
         return;
     }
-    FILE *fp = fopen(fn, "r");
+    FILE *fp = fopen(fn, "rb"); // must use rb since windows will eat \r in text mode
     if (!fp) fail("can't open taxi data file %s", fn);
     
     set<int> id_set;
@@ -151,7 +154,7 @@ void MapTaxiRoute::load_route(int taxi_index)
     
     printd("id = %d, offset = %ld\n", taxi_id, offset);
     
-    FILE *fp = fopen(fn, "r");
+    FILE *fp = fopen(fn, "rb");
     if (!fp) fail("can't open taxi data file %s", fn);
     
     if (fseek(fp, offset, SEEK_SET) != 0)
