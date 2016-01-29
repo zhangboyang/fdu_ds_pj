@@ -22,6 +22,6 @@ $(EXEC_FILE): $(OBJ_FILES)
 	g++ $(CC_FLAGS) -c -o $@ $<
 
 clean:
-	rm -rf *.o *.d
+	rm -rf *.o *.d $(EXEC_FILE)
 
 -include $(OBJ_FILES:.o=.d)
